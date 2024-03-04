@@ -42,11 +42,24 @@
 	$language = new text;
 	$text = $language->get();
 
-//get posted data
-	if (!empty($_POST['destinations'])) {
-		$action = $_POST['action'] ?? '';
-		$search = $_POST['search'] ?? '';
-		$destinations = $_POST['destinations'] ?? '';
+//pre-defined variables
+	$action = '';
+	$search = '';
+	$show = '';
+	$destinations = '';
+
+//get http variables
+	if (isset($_REQUEST["action"]) && !empty($_REQUEST["action"])) {
+		$action =  $_REQUEST["action"];
+	}
+	if (isset($_REQUEST["search"]) && !empty($_REQUEST["search"])) {
+		$search =  strtolower($_REQUEST["search"]);
+	}
+	if (isset($_REQUEST["show"]) && !empty($_REQUEST["show"])) {
+		$show =  strtolower($_REQUEST["show"]);
+	}
+	if (isset($_REQUEST["destinations"]) && !empty($_REQUEST["destinations"])) {
+		$destinations =  $_REQUEST["destinations"];
 	}
 
 //process the http post data by action
@@ -74,26 +87,42 @@
 	$destination = new destinations;
 	$destination_array = $destination->all('dialplan');
 
-//add a function to return the action_name
-	function action_name($destination_array, $detail_action) {
-		$result = '';
-		if (!empty($destination_array)) {
-			foreach($destination_array as $group => $row) {
-				if (!empty($row)) {
-					foreach ($row as $key => $value) {
-						if ($value == $detail_action) {
-							//add multi-lingual support
-							if (file_exists($_SERVER["PROJECT_ROOT"]."/app/".$group."/app_languages.php")) {
-								$language2 = new text;
-								$text2 = $language2->get($_SESSION['domain']['language']['code'], 'app/'.$group);
-								$result = trim($text2['title-'.$group].' '.$key);
+//function to return the action names in the order defined
+	function action_name($destination_array, $destination_actions) {
+		$actions = [];
+		if (!empty($destination_array) && is_array($destination_array)) {
+			if (!empty($destination_actions) && is_array($destination_actions)) {
+				foreach ($destination_actions as $destination_action) {
+					if (!empty($destination_action)) {
+						foreach ($destination_array as $group => $row) {
+							if (!empty($row) && is_array($row)) {
+								foreach ($row as $key => $value) {
+									if ($destination_action == $value) {
+										if ($group == 'other') {
+											if (!isset($language2) && !isset($text2)) {
+												if (file_exists($_SERVER["PROJECT_ROOT"]."/app/dialplans/app_languages.php")) {
+													$language2 = new text;
+													$text2 = $language2->get($_SESSION['domain']['language']['code'], 'app/dialplans');
+												}
+											}
+											$actions[] = trim($text2['title-other'].' &#x203A; '.$text2['option-'.str_replace('&lowbar;','_',$key)]);
+										}
+										else {
+											if (file_exists($_SERVER["PROJECT_ROOT"]."/app/".$group."/app_languages.php")) {
+												$language3 = new text;
+												$text3 = $language3->get($_SESSION['domain']['language']['code'], 'app/'.$group);
+												$actions[] = trim($text3['title-'.$group].' &#x203A; '.$key);
+											}
+										}
+									}
+								}
 							}
-							return $result;
 						}
 					}
 				}
 			}
 		}
+		return $actions;
 	}
 
 //set the type
@@ -110,10 +139,6 @@
 //get variables used to control the order
 	$order_by = $_GET["order_by"] ?? '';
 	$order = $_GET["order"] ?? '';
-
-//get the HTTP variables
-	$search = $_GET["search"] ?? '';
-	$show = $_GET["show"] ?? '';
 
 //set from session variables
 	$list_row_edit_button = !empty($_SESSION['theme']['list_row_edit_button']['boolean']) ? $_SESSION['theme']['list_row_edit_button']['boolean'] : 'false';
@@ -266,7 +291,7 @@
 		echo th_order_by('domain_name', $text['label-domain'], $order_by, $order, $param, "class='shrink'");
 	}
 	echo th_order_by('destination_type', $text['label-destination_type'], $order_by, $order, $param, "class='shrink'");
-	echo th_order_by('destination_prefix', $text['label-destination_prefix'], $order_by, $order, $param, "class='shrink'");
+	echo th_order_by('destination_prefix', $text['label-destination_prefix'], $order_by, $order, $param, "class='shrink center'");
 	if (permission_exists('destination_trunk_prefix')) {
 		echo th_order_by('destination_trunk_prefix', $text['label-destination_trunk_prefix'], $order_by, $order, $param, "class='shrink'");
 	}
@@ -293,18 +318,15 @@
 
 	if (!empty($destinations)) {
 		$x = 0;
-		foreach($destinations as $row) {
-
-			//define variables with an empty string
-			$destination_app = '';
-			$destination_data = '';
+		foreach ($destinations as $row) {
 
 			//prepare the destination actions
-			$destination_actions = json_decode($row['destination_actions'], true);
-			if (!empty($destination_actions)) {
-				foreach($destination_actions as $action) {
-					$destination_app = $action['destination_app'];
-					$destination_data = $action['destination_data'];
+			if (!empty($row['destination_actions'])) {
+				$destination_actions = json_decode($row['destination_actions'], true);
+				if (!empty($destination_actions)) {
+					foreach ($destination_actions as $action) {
+						$destination_app_data[] = $action['destination_app'].':'.$action['destination_data'];
+					}
 				}
 			}
 
@@ -330,9 +352,9 @@
 				}
 				echo "	<td>".escape($domain)."</td>\n";
 			}
-			echo "	<td>".escape($row['destination_type'])."&nbsp;</td>\n";
+			echo "	<td>".escape($text['option-'.$row['destination_type']])."&nbsp;</td>\n";
 
-			echo "	<td>".escape($row['destination_prefix'])."&nbsp;</td>\n";
+			echo "	<td class='center'>".escape($row['destination_prefix'])."&nbsp;</td>\n";
 			if (permission_exists('destination_trunk_prefix')) {
 				echo "	<td>".escape($row['destination_trunk_prefix'])."&nbsp;</td>\n";
 			}
@@ -350,7 +372,8 @@
 			echo "	</td>\n";
 
 			if (!$show == "all") {
-				echo "	<td class='overflow' style='min-width: 125px;'>".action_name($destination_array, $destination_app.':'.$destination_data)."&nbsp;</td>\n";
+				$actions = action_name($destination_array, $destination_app_data);
+				echo "	<td class='overflow' style='min-width: 125px;'>".(!empty($actions) ? implode(', ', $actions) : null)."&nbsp;</td>\n";
 			}
 			if (permission_exists("destination_context")) {
 				echo "	<td>".escape($row['destination_context'])."&nbsp;</td>\n";
@@ -368,8 +391,8 @@
 			}
 			echo "</tr>\n";
 
-			//unset the destination app and data
-			unset($destination_app, $destination_data);
+			//unset the destination app and data array
+			unset($destination_app_data);
 
 			//increment the id
 			$x++;

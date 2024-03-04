@@ -573,16 +573,16 @@
 
 				//update the user_status
 					if (isset($call_center_agent_uuid) && is_uuid($call_center_agent_uuid) && !empty($user_status)) {
-						$fp = event_socket_create($_SESSION['event_socket_ip_address'], $_SESSION['event_socket_port'], $_SESSION['event_socket_password']);
+						$esl = event_socket::create();
 						$switch_cmd = "callcenter_config agent set status ".$call_center_agent_uuid." '".$user_status."'";
-						$switch_result = event_socket_request($fp, 'api '.$switch_cmd);
+						$switch_result = event_socket::api($switch_cmd);
 					}
 
 				//update the user state
 					if (isset($call_center_agent_uuid) && is_uuid($call_center_agent_uuid)) {
-						$fp = event_socket_create($_SESSION['event_socket_ip_address'], $_SESSION['event_socket_port'], $_SESSION['event_socket_password']);
-						$cmd = "api callcenter_config agent set state ".$call_center_agent_uuid." Waiting";
-						$response = event_socket_request($fp, $cmd);
+						$esl = event_socket::create();
+						$cmd = "callcenter_config agent set state ".$call_center_agent_uuid." Waiting";
+						$response = event_socket::api($cmd);
 					}
 			}
 
@@ -666,6 +666,7 @@
 
 //set the defaults
 	if (empty($user_enabled)) { $user_enabled = "true"; }
+	if (empty($user_totp_secret)) { $user_totp_secret = ""; }
 
 //create token
 	$object = new token;
@@ -860,7 +861,7 @@
 	echo "	</td>\n";
 	echo "	</tr>\n";
 
-	if (isset($_SESSION['user_status_display']) && $_SESSION['user_status_display'] != "false") {
+	if (permission_exists("user_status")) {
 		echo "	<tr>\n";
 		echo "	<td width='20%' class=\"vncell\" valign='top'>\n";
 		echo "		".$text['label-status']."\n";

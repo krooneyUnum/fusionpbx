@@ -186,7 +186,7 @@
 						$this->voicemail_uuid = $row['voicemail_uuid'];
 						$this->voicemail_id = $row['voicemail_id'];
 						$result = $this->voicemail_messages();
-						$voicemail_count = count($result);
+						$voicemail_count = !empty($result) && is_array($result) ? count($result) : 0;
 						$row['messages'] = $result;
 					}
 				}
@@ -595,10 +595,10 @@
 
 			//send the message waiting status
 
-				$fp = event_socket_create($_SESSION['event_socket_ip_address'], $_SESSION['event_socket_port'], $_SESSION['event_socket_password']);
-				if ($fp) {
+				$esl = event_socket::create();
+				if ($esl->is_connected()) {
 					$switch_cmd = "luarun app.lua voicemail mwi ".$this->voicemail_id."@".$_SESSION['domain_name'];
-					$switch_result = event_socket_request($fp, 'api '.$switch_cmd);
+					$switch_result = event_socket::api($switch_cmd);
 				}
 		}
 
@@ -645,8 +645,8 @@
 
 			//execute delete
 				$database = new database;
-				$database->app_name = 'voicemails';
-				$database->app_uuid = 'b523c2d2-64cd-46f1-9520-ca4b4098e044';
+				$database->app_name = $this->app_name;
+				$database->app_name = $this->app_uuid;
 				$database->delete($array);
 				unset($array);
 
@@ -685,8 +685,8 @@
 
 			//execute update
 				$database = new database;
-				$database->app_name = 'voicemails';
-				$database->app_uuid = 'b523c2d2-64cd-46f1-9520-ca4b4098e044';
+				$database->app_name = $this->app_name;
+				$database->app_name = $this->app_uuid;
 				$database->save($array);
 				unset($array);
 
@@ -717,8 +717,8 @@
 
 			//execute update
 				$database = new database;
-				$database->app_name = 'voicemails';
-				$database->app_uuid = 'b523c2d2-64cd-46f1-9520-ca4b4098e044';
+				$database->app_name = $this->app_name;
+				$database->app_name = $this->app_uuid;
 				$database->save($array);
 				unset($array);
 
@@ -843,7 +843,7 @@
 		 * range download method (helps safari play audio sources)
 		 */
 		private function range_download($file) {
-			$fp = @fopen($file, 'rb');
+			$esl = @fopen($file, 'rb');
 
 			$size   = filesize($file); // File size
 			$length = $size;           // Content length
@@ -909,7 +909,7 @@
 				$start  = $c_start;
 				$end    = $c_end;
 				$length = $end - $start + 1; // Calculate new content length
-				fseek($fp, $start);
+				fseek($esl, $start);
 				header('HTTP/1.1 206 Partial Content');
 			}
 			// Notify the client the byte range we'll be outputting
@@ -918,18 +918,17 @@
 
 			// Start buffered download
 			$buffer = 1024 * 8;
-			while(!feof($fp) && ($p = ftell($fp)) <= $end) {
+			while(!feof($esl) && ($p = ftell($esl)) <= $end) {
 				if ($p + $buffer > $end) {
 					// In case we're only outputtin a chunk, make sure we don't
 					// read past the length
 					$buffer = $end - $p + 1;
 				}
 				set_time_limit(0); // Reset time limit for big files
-				echo fread($fp, $buffer);
+				echo fread($esl, $buffer);
 				flush(); // Free up memory. Otherwise large files will trigger PHP's memory limit.
 			}
 
-			fclose($fp);
 		}
 
 

@@ -116,7 +116,7 @@
 										is_array($tmp_url) && @sizeof($tmp_url) != 0 &&
 										is_array($tmp_path) && @sizeof($tmp_path) != 0 &&
 										(
-											($tmp_url['scheme'] != '' && $tmp_url['scheme'].'://'.$tmp_url['host'].$tmp_url['path'] == $tmp_path['dirname'].'/'.$tmp_path['filename'].'.'.$tmp_path['extension']) //is url
+											(!empty($tmp_url['scheme']) && $tmp_url['scheme'].'://'.$tmp_url['host'].$tmp_url['path'] == $tmp_path['dirname'].'/'.$tmp_path['filename'].'.'.$tmp_path['extension']) //is url
 											|| $tmp_url['path'] == $tmp_path['dirname'].'/'.$tmp_path['filename'].'.'.$tmp_path['extension'] //is path
 										)) {
 										$settings['theme'][$subcategory] = $setting['text'];
@@ -160,10 +160,7 @@
 		if (isset($_SESSION['theme']['title']['text']) && $_SESSION['theme']['title']['text'] != '') {
 			$document_title = $_SESSION['theme']['title']['text'];
 		}
-		else if (isset($_SESSION['software_name'])) {
-			$document_title = $_SESSION['software_name'];
-		}
-		$document_title = (!empty($document['title']) ? $document['title'].' - ' : null).$document_title;
+		$document_title = (!empty($document['title']) ? $document['title'].' - ' : null).($document_title ?? '');
 		$view->assign('document_title', $document_title);
 	//domain selector control
 		$domain_selector_enabled = permission_exists('domain_select') && count($_SESSION['domains']) > 1 ? true : false;
