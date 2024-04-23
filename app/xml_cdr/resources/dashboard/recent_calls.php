@@ -68,6 +68,7 @@
 					$sql .= "and false \n";
 				}
 			}
+	$sql .= "and hangup_cause <> 'LOSE_RACE' ";
 	$sql .= "and start_epoch > ".(time() - 86400)." ";
 	$sql .= "order by start_epoch desc ";
 	$sql .= "limit :recent_limit ";
@@ -86,50 +87,57 @@
 //recent calls
 	echo "<div class='hud_box'>\n";
 
-//add doughnut chart
-	?>
-	<div style='display: flex; flex-wrap: wrap; justify-content: center; padding-bottom: 20px;' onclick="$('#hud_recent_calls_details').slideToggle('fast');">
-		<canvas id='recent_calls_chart' width='175px' height='175px'></canvas>
-	</div>
+	echo "	<div style='display: flex; flex-wrap: wrap; justify-content: center; padding-bottom: 20px;' onclick=\"$('#hud_recent_calls_details').slideToggle('fast');\">\n";
+	echo "		<span class='hud_title' style='color: ".$dashboard_heading_text_color.";' onclick=\"document.location.href='".PROJECT_PATH."/app/xml_cdr/xml_cdr.php';\">".$text['label-recent_calls']."</span>\n";
 
-	<script>
-		const recent_calls_chart = new Chart(
-			document.getElementById('recent_calls_chart').getContext('2d'),
-			{
-				type: 'doughnut',
-				data: {
-					datasets: [{
-						data: ['<?php echo $num_rows; ?>', 0.00001],
-						backgroundColor: [
-							'<?php echo $_SESSION['dashboard']['recent_calls_chart_main_background_color']['text']; ?>',
-							'<?php echo $_SESSION['dashboard']['recent_calls_chart_sub_background_color']['text']; ?>'
-						],
-						borderColor: '<?php echo $_SESSION['dashboard']['recent_calls_chart_border_color']['text']; ?>',
-						borderWidth: '<?php echo $_SESSION['dashboard']['recent_calls_chart_border_width']['text']; ?>',
-						cutout: chart_cutout
-					}]
-				},
-				options: {
-					responsive: true,
-					maintainAspectRatio: false,
-					plugins: {
-						chart_counter: {
-							chart_text: '<?php echo $num_rows; ?>'
-						},
-						legend: {
-							display: false
-						},
-						title: {
-							display: true,
-							text: '<?php echo $text['label-recent_calls']; ?>'
+	if ($dashboard_chart_type == "doughnut") {
+		//add doughnut chart
+		?>
+		<div style='height: 143px;'><canvas id='recent_calls_chart'></canvas></div>
+		<script>
+			const recent_calls_chart = new Chart(
+				document.getElementById('recent_calls_chart').getContext('2d'),
+				{
+					type: 'doughnut',
+					data: {
+						datasets: [{
+							data: ['<?php echo $num_rows; ?>', 0.00001],
+							backgroundColor: [
+								'<?php echo $_SESSION['dashboard']['recent_calls_chart_main_background_color']['text']; ?>',
+								'<?php echo $_SESSION['dashboard']['recent_calls_chart_sub_background_color']['text']; ?>'
+							],
+							borderColor: '<?php echo $_SESSION['dashboard']['recent_calls_chart_border_color']['text']; ?>',
+							borderWidth: '<?php echo $_SESSION['dashboard']['recent_calls_chart_border_width']['text']; ?>'
+						}]
+					},
+					options: {
+						plugins: {
+							chart_number: {
+								text: '<?php echo $num_rows; ?>'
+							}
 						}
-					}
-				},
-				plugins: [chart_counter],
-			}
-		);
-	</script>
-	<?php
+					},
+					plugins: [{
+						id: 'chart_number',
+						beforeDraw(chart, args, options){
+							const {ctx, chartArea: {top, right, bottom, left, width, height} } = chart;
+							ctx.font = chart_text_size + 'px ' + chart_text_font;
+							ctx.textBaseline = 'middle';
+							ctx.textAlign = 'center';
+							ctx.fillStyle = '<?php echo $dashboard_number_text_color; ?>';
+							ctx.fillText(options.text, width / 2, top + (height / 2));
+							ctx.save();
+						}
+					}]
+				}
+			);
+		</script>
+		<?php
+	}
+	if ($dashboard_chart_type == "none") {
+		echo "	<span class='hud_stat' style='color: ".$dashboard_number_text_color.";'>".$num_rows."</span>";
+	}
+	echo "	</div>\n";
 
 	echo "<div class='hud_details hud_box' id='hud_recent_calls_details'>";
 	echo "<table class='tr_hover' width='100%' cellpadding='0' cellspacing='0' border='0'>\n";

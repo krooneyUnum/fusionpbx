@@ -208,6 +208,14 @@
 			private $result;
 
 			/**
+			 * Stores the application built from the app_config files.
+			 * @var array
+			 * @see $apps
+			 * @access private
+			 */
+			private static $apps = [];
+
+			/**
 			 * Stores the application name making the request.
 			 * @var string App name making database request.
 			 * @see $app_uuid
@@ -227,10 +235,19 @@
 			 * <p>Stores the domain UUID making the request.</p>
 			 * <p>This is defaulted to the Session domain UUID.</p>
 			 * @access public
-			 * @uses $_SESSION['domain_uuid'] <br>Default value upon object creation
+			 * @uses $this->domain_uuid <br>Default value upon object creation
 			 * @var string Domain UUID making request.
 			 */
 			public $domain_uuid;
+
+			/**
+			 * <p>Stores the user UUID making the request.</p>
+			 * <p>This is defaulted to the Session domain UUID.</p>
+			 * @access public
+			 * @uses $this->user_uuid <br>Default value upon object creation
+			 * @var string Domain UUID making request.
+			 */
+			public $user_uuid;
 
 			/**
 			 * <p>Message for the query results.</p>
@@ -242,9 +259,21 @@
 			/**
 			 * Called when the object is created
 			 */
-			public function __construct() {
-				if (!isset($this->domain_uuid) && isset($_SESSION['domain_uuid'])) {
+			public function __construct(array $params = []) {
+				//set the domain_uuid
+				if (isset($params['domain_uuid']) && is_uuid($params['domain_uuid'])) {
+					$this->domain_uuid = $domain_uuid;
+				}
+				elseif (isset($_SESSION['domain_uuid']) && is_uuid($_SESSION['domain_uuid'])) {
 					$this->domain_uuid = $_SESSION['domain_uuid'];
+				}
+
+				//set the user_uuid
+				if (isset($params['user_uuid']) && is_uuid($params['user_uuid'])) {
+					$this->user_uuid = $user_uuid;
+				}
+				elseif (isset($_SESSION['user_uuid']) && is_uuid($_SESSION['user_uuid'])) {
+					$this->user_uuid = $_SESSION['user_uuid'];
 				}
 			}
 
@@ -890,7 +919,7 @@
 						return false;
 					}
 			}
-    
+
 			public function add() {
 				//connect to the database if needed
 					if (!$this->db) {
@@ -1301,9 +1330,6 @@
 				//set the action if not set
 					$transaction_type = 'delete';
 
-				//get the UUIDs
-					$user_uuid = $_SESSION['user_uuid'] ?? null;
-
 				//log the transaction results
 					if (file_exists($_SERVER["PROJECT_ROOT"]."/app/database_transactions/app_config.php")) {
 						$sql = "insert into ".self::TABLE_PREFIX."database_transactions ";
@@ -1312,7 +1338,7 @@
 						if (isset($this->domain_uuid) && is_uuid($this->domain_uuid)) {
 							$sql .= "domain_uuid, ";
 						}
-						if (isset($user_uuid) && is_uuid($user_uuid)) {
+						if (isset($this->user_uuid) && is_uuid($this->user_uuid)) {
 							$sql .= "user_uuid, ";
 						}
 						if (isset($this->app_uuid) && is_uuid($this->app_uuid)) {
@@ -1335,7 +1361,7 @@
 						if (isset($this->domain_uuid) && is_uuid($this->domain_uuid)) {
 							$sql .= "'".$this->domain_uuid."', ";
 						}
-						if (isset($user_uuid) && is_uuid($user_uuid)) {
+						if (isset($this->user_uuid) && is_uuid($this->user_uuid)) {
 							$sql .= ":user_uuid, ";
 						}
 						if (isset($this->app_uuid) && is_uuid($this->app_uuid)) {
@@ -1363,8 +1389,8 @@
 						$sql .= ":transaction_result ";
 						$sql .= ")";
 						$statement = $this->db->prepare($sql);
-						if (isset($user_uuid) && is_uuid($user_uuid)) {
-							$statement->bindParam(':user_uuid', $user_uuid);
+						if (isset($this->user_uuid) && is_uuid($this->user_uuid)) {
+							$statement->bindParam(':user_uuid', $this->user_uuid);
 						}
 						if (isset($this->app_uuid) && is_uuid($this->app_uuid)) {
 							$statement->bindParam(':app_uuid', $this->app_uuid);
@@ -1953,28 +1979,26 @@
 					unset($array);
 
 					//get the $apps array from the installed apps from the core and mod directories
-					if (empty($_SESSION['apps']) || !is_array($_SESSION['apps'])) {
+					if (count(self::$apps) == 0) {
 						self::get_apps();
 					}
 
 					//search through all fields to see if toggle field exists
-					if (is_array($_SESSION['apps'])) {
-						foreach ($_SESSION['apps'] as $x => $app) {
-							if (!empty($app['db']) && is_array($app['db'])) {
-								foreach ($app['db'] as $y => $row) {
-									if (is_array($row['table']['name'])) {
-										$table_name = $row['table']['name']['text'];
-									}
-									else {
-										$table_name = $row['table']['name'];
-									}
-									if ($table_name === self::TABLE_PREFIX.$parent_name) {
-										if (is_array($row['fields'])) {
-											foreach ($row['fields'] as $field) {
-												if (isset($field['toggle'])) {
-													$toggle_field = $field['name'];
-													$toggle_values = $field['toggle'];
-												}
+					foreach (self::$apps as $x => $app) {
+						if (!empty($app['db']) && is_array($app['db'])) {
+							foreach ($app['db'] as $y => $row) {
+								if (is_array($row['table']['name'])) {
+									$table_name = $row['table']['name']['text'];
+								}
+								else {
+									$table_name = $row['table']['name'];
+								}
+								if ($table_name === self::TABLE_PREFIX.$parent_name) {
+									if (is_array($row['fields'])) {
+										foreach ($row['fields'] as $field) {
+											if (isset($field['toggle'])) {
+												$toggle_field = $field['name'];
+												$toggle_values = $field['toggle'];
 											}
 										}
 									}
@@ -2163,7 +2187,7 @@
 															}
 															elseif ($array_value === "user_uuid()") {
 																$sql .= ':'.$array_key.", ";
-																$params[$array_key] = $_SESSION['user_uuid'] ?? null;
+																$params[$array_key] = $this->user_uuid ?? null;
 															}
 															elseif ($array_value === "remote_address()") {
 																$sql .= ':'.$array_key.", ";
@@ -2183,7 +2207,7 @@
 											$sql .= ");";
 
 											//add insert user parameter
-											$params['insert_user'] = $_SESSION['user_uuid'] ?? null;
+											$params['insert_user'] = $this->user_uuid ?? null;
 
 											//set the error mode
 											$this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -2262,7 +2286,7 @@
 														}
 														elseif ($array_value === "user_uuid()") {
 															$sql .= $array_key." = :".$array_key.", ";
-															$params[$array_key] = $_SESSION['user_uuid'] ?? null;
+															$params[$array_key] = $this->user_uuid ?? null;
 														}
 														elseif ($array_value === "remote_address()") {
 															$sql .= $array_key." = :".$array_key.", ";
@@ -2279,14 +2303,14 @@
 											//add the modified date and user
 											$sql .= "update_date = now(), ";
 											$sql .= "update_user = :update_user ";
-											$params['update_user'] = $_SESSION['user_uuid'] ?? null;
+											$params['update_user'] = $this->user_uuid ?? null;
 
 											//add the where with the parent name and value
 											$sql .= "WHERE ".$parent_key_name." = '".$parent_key_value."'; ";
 											$sql = str_replace(", WHERE", " WHERE", $sql);
 
 											//add update user parameter
-											$params['update_user'] = $_SESSION['user_uuid'] ?? null;
+											$params['update_user'] = $this->user_uuid ?? null;
 
 											//set the error mode
 											$this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -2448,7 +2472,7 @@
 																			}
 																			elseif ($v === "user_uuid()") {
 																				$sql .= $k." = :".$k.", ";
-																				$params[$k] = $_SESSION['user_uuid'] ?? null;
+																				$params[$k] = $this->user_uuid ?? null;
 																			}
 																			elseif ($v === "remote_address()") {
 																				$sql .= $k." = :".$k.", ";
@@ -2465,7 +2489,7 @@
 																//add the modified date and user
 																$sql .= "update_date = now(), ";
 																$sql .= "update_user = :update_user ";
-																$params['update_user'] = $_SESSION['user_uuid'] ?? null;
+																$params['update_user'] = $this->user_uuid ?? null;
 
 																//add the where with the parent name and value
 																$sql .= "WHERE ".$parent_key_name." = '".$parent_key_value."' ";
@@ -2500,7 +2524,7 @@
 																}
 																catch(PDOException $e) {
 																	$retval = false;
-																	if ($message["code"] = "200") {
+																	if ($message["code"] == "200") {
 																		$message["message"] = "Bad Request";
 																		$message["code"] = "400";
 																	}
@@ -2596,7 +2620,7 @@
 																			}
 																			elseif ($v === "user_uuid()") {
 																				$sql .= ':'.$k.", ";
-																				$params[$k] = $_SESSION['user_uuid'] ?? null;
+																				$params[$k] = $this->user_uuid ?? null;
 																			}
 																			elseif ($v === "remote_address()") {
 																				$sql .= ':'.$k.", ";
@@ -2621,7 +2645,7 @@
 															$sql .= ");";
 
 															//add insert user parameter
-															$params['insert_user'] = $_SESSION['user_uuid'] ?? null;
+															$params['insert_user'] = $this->user_uuid ?? null;
 
 															//set the error mode
 															$this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -2650,7 +2674,7 @@
 															}
 															catch(PDOException $e) {
 																$retval = false;
-																if ($message["code"] = "200") {
+																if ($message["code"] == "200") {
 																	$message["message"] = "Bad Request";
 																	$message["code"] = "400";
 																}
@@ -2707,9 +2731,6 @@
 						$transaction_type = $action;
 					}
 
-				//get the UUIDs
-					$user_uuid = $_SESSION['user_uuid'] ?? null;
-
 				//log the transaction results
 					if ($transaction_save && file_exists($_SERVER["PROJECT_ROOT"]."/app/database_transactions/app_config.php")) {
 						try {
@@ -2717,7 +2738,7 @@
 							$sql .= "(";
 							$sql .= "database_transaction_uuid, ";
 							$sql .= "domain_uuid, ";
-							if (isset($user_uuid) && is_uuid($user_uuid)) {
+							if (isset($this->user_uuid) && is_uuid($this->user_uuid)) {
 								$sql .= "user_uuid, ";
 							}
 							if (isset($this->app_uuid) && is_uuid($this->app_uuid)) {
@@ -2743,7 +2764,7 @@
 							else {
 								$sql .= "'".$this->domain_uuid."', ";
 							}
-							if (isset($user_uuid) && is_uuid($user_uuid)) {
+							if (isset($this->user_uuid) && is_uuid($this->user_uuid)) {
 								$sql .= ":user_uuid, ";
 							}
 							if (isset($this->app_uuid) && is_uuid($this->app_uuid)) {
@@ -2771,8 +2792,8 @@
 							$sql .= ":transaction_result ";
 							$sql .= ")";
 							$statement = $this->db->prepare($sql);
-							if (isset($user_uuid) && is_uuid($user_uuid)) {
-								$statement->bindParam(':user_uuid', $user_uuid);
+							if (isset($this->user_uuid) && is_uuid($this->user_uuid)) {
+								$statement->bindParam(':user_uuid', $this->user_uuid);
 							}
 							if (isset($this->app_uuid) && is_uuid($this->app_uuid)) {
 								$statement->bindParam(':app_uuid', $this->app_uuid);
@@ -2844,7 +2865,7 @@
 			}
 
 			/**
-			 * Gets the $apps array from the installed apps from the core and mod directories and writes it to $_SESSION['apps'] overwriting previous values.
+			 * Gets the $apps array from the installed apps from the core and mod directories and writes it to self::$apps overwriting previous values.
 			 * @uses $_SERVER['DOCUMENT_ROOT'] Global variable
 			 * @uses PROJECT_PATH Global variable
 			 * @return null Does not return any values
@@ -2860,7 +2881,7 @@
 							$x++;
 						}
 					}
-					$_SESSION['apps'] = $apps;
+					self::$apps = $apps;
 			}
 
 			/**
@@ -2885,41 +2906,38 @@
 			/**
 			 * Searches through all fields to see if domain_uuid exists
 			 * @param string $name
-			 * @uses $_SESSION['apps'] directly
+			 * @uses self::$apps directly
 			 * @return boolean <b>true</b> on success and <b>false</b> on failure
 			 * @see database::get_apps()
 			 */
 			public static function domain_uuid_exists($name) {
 				//get the $apps array from the installed apps from the core and mod directories
-					if (!is_array($_SESSION['apps'])) {
+					if (count(self::$apps) == 0) {
 						self::get_apps();
 					}
 
 				//search through all fields to see if domain_uuid exists
-					$apps = $_SESSION['apps'];
-					if (is_array($apps)) {
-						foreach ($apps as $x => &$app) {
-							if (is_array($app['db'])) {
-								foreach ($app['db'] as $y => &$row) {
-									if (is_array($row['table']['name'])) {
-										$table_name = $row['table']['name']['text'];
-									}
-									else {
-										$table_name = $row['table']['name'];
-									}
-									if ($table_name === self::TABLE_PREFIX.$name) {
-										if (is_array($row['fields'])) {
-											foreach ($row['fields'] as $field) {
-												if ($field['name'] == "domain_uuid") {
-													return true;
-												}
-											} //foreach
-										} //is array
-									}
-								} //foreach
-							} //is array
-						} //foreach
-					} //is array
+					foreach (self::$apps as $x => &$app) {
+						if (is_array($app['db'])) {
+							foreach ($app['db'] as $y => &$row) {
+								if (is_array($row['table']['name'])) {
+									$table_name = $row['table']['name']['text'];
+								}
+								else {
+									$table_name = $row['table']['name'];
+								}
+								if ($table_name === self::TABLE_PREFIX.$name) {
+									if (is_array($row['fields'])) {
+										foreach ($row['fields'] as $field) {
+											if ($field['name'] == "domain_uuid") {
+												return true;
+											}
+										} //foreach
+									} //is array
+								}
+							} //foreach
+						} //is array
+					} //foreach
 
 				//not found
 					return false;
