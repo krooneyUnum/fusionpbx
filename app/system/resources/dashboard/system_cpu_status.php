@@ -50,13 +50,14 @@
 
 	}
 
-//add half doughnut chart
-	echo "	<div style='display: flex; flex-wrap: wrap; justify-content: center; padding-bottom: 20px;' onclick=\"$('#hud_system_cpu_status_details').slideToggle('fast');\">\n";
-	echo "		<span class='hud_title' style='color: ".$dashboard_heading_text_color.";' onclick=\"document.location.href='".PROJECT_PATH."/app/system/system.php'\">".$text['label-cpu_usage']."</span>\n";
+//show the content
+	echo "<div class='hud_content' ".($dashboard_details_state == "disabled" ?: "onclick=\"$('#hud_system_cpu_status_details').slideToggle('fast'); toggle_grid_row_end('".$dashboard_name."')\"").">\n";
+	echo "	<span class='hud_title'><a onclick=\"document.location.href='".PROJECT_PATH."/app/system/system.php'\">".$text['label-cpu_usage']."</a></span>\n";
 
-	if ($dashboard_chart_type == "doughnut") {
+//add half doughnut chart
+	if (!isset($dashboard_chart_type) || $dashboard_chart_type == "doughnut") {
 		?>
-		<div style='width: 175px; height: 143px;'><canvas id='system_cpu_status_chart'></canvas></div>
+		<div class='hud_chart' style='width: 175px;'><canvas id='system_cpu_status_chart'></canvas></div>
 
 		<script>
 			const system_cpu_status_chart = new Chart(
@@ -69,17 +70,17 @@
 							backgroundColor: [
 								<?php
 								if ($percent_cpu <= 60) {
-									echo "'".$_SESSION['dashboard']['cpu_usage_chart_main_background_color'][0]."',\n";
+									echo "'".($settings->get('theme', 'dashboard_cpu_usage_chart_main_color')[0] ?? '#03c04a')."',\n";
 								} else if ($percent_cpu <= 80) {
-									echo "'".$_SESSION['dashboard']['cpu_usage_chart_main_background_color'][1]."',\n";
+									echo "'".($settings->get('theme', 'dashboard_cpu_usage_chart_main_color')[1] ?? '#ff9933')."',\n";
 								} else if ($percent_cpu > 80) {
-									echo "'".$_SESSION['dashboard']['cpu_usage_chart_main_background_color'][2]."',\n";
+									echo "'".($settings->get('theme', 'dashboard_cpu_usage_chart_main_color')[2] ?? '#ea4c46')."',\n";
 								}
 								?>
-								'<?php echo $_SESSION['dashboard']['cpu_usage_chart_sub_background_color']['text']; ?>'
+								'<?php echo ($settings->get('theme', 'dashboard_cpu_usage_chart_sub_color') ?? '#d4d4d4'); ?>'
 							],
-							borderColor: '<?php echo $_SESSION['dashboard']['cpu_usage_chart_border_color']['text']; ?>',
-							borderWidth: '<?php echo $_SESSION['dashboard']['cpu_usage_chart_border_width']['text']; ?>'
+							borderColor: '<?php echo $settings->get('theme', 'dashboard_chart_border_color'); ?>',
+							borderWidth: '<?php echo $settings->get('theme', 'dashboard_chart_border_width'); ?>',
 						}]
 					},
 					options: {
@@ -99,7 +100,7 @@
 						id: 'chart_number_2',
 						beforeDraw(chart, args, options){
 							const {ctx, chartArea: {top, right, bottom, left, width, height} } = chart;
-							ctx.font = (chart_text_size - 7) + 'px ' + chart_text_font;
+							ctx.font = chart_text_size + ' ' + chart_text_font;
 							ctx.textBaseline = 'middle';
 							ctx.textAlign = 'center';
 							ctx.fillStyle = '<?php echo $dashboard_number_text_color; ?>';
@@ -112,60 +113,61 @@
 		</script>
 		<?php
 	}
-	if ($dashboard_chart_type == "none") {
-		echo "	<span class='hud_stat' style='color: ".$dashboard_number_text_color.";'>".round($percent_cpu)."%</span>";
+	if ($dashboard_chart_type == "number") {
+		echo "<span class='hud_stat'>".round($percent_cpu)."%</span>";
 	}
-	echo "	</div>\n";
+	echo "</div>\n";
 
-//show the content
-	echo "<div class='hud_details hud_box' id='hud_system_cpu_status_details'>";
-	echo "<table class='tr_hover' width='100%' cellpadding='0' cellspacing='0' border='0'>\n";
-	echo "<tr>\n";
-	echo "<th class='hud_heading' width='50%'>".$text['label-name']."</th>\n";
-	echo "<th class='hud_heading' style='text-align: right;'>".$text['label-value']."</th>\n";
-	echo "</tr>\n";
+	if ($dashboard_details_state != 'disabled') {
+		echo "<div class='hud_details hud_box' id='hud_system_cpu_status_details'>";
+		echo "<table class='tr_hover' width='100%' cellpadding='0' cellspacing='0' border='0'>\n";
+		echo "<tr>\n";
+		echo "<th class='hud_heading' width='50%'>".$text['label-name']."</th>\n";
+		echo "<th class='hud_heading' style='text-align: right;'>".$text['label-value']."</th>\n";
+		echo "</tr>\n";
 
-	if (PHP_OS == 'FreeBSD' || PHP_OS == 'Linux') {
-		if (!empty($percent_cpu)) {
+		if (PHP_OS == 'FreeBSD' || PHP_OS == 'Linux') {
+			if (!empty($percent_cpu)) {
+				echo "<tr class='tr_link_void'>\n";
+				echo "<td valign='top' class='".$row_style[$c]." hud_text'>".$text['label-cpu_usage']."</td>\n";
+				echo "<td valign='top' class='".$row_style[$c]." hud_text' style='text-align: right;'>".$percent_cpu."%</td>\n";
+				echo "</tr>\n";
+				$c = ($c) ? 0 : 1;
+			}
+
+			if (!empty($cpu_cores)) {
+				echo "<tr class='tr_link_void'>\n";
+				echo "<td valign='top' class='".$row_style[$c]." hud_text'>".$text['label-cpu_cores']."</td>\n";
+				echo "<td valign='top' class='".$row_style[$c]." hud_text' style='text-align: right;'>".$cpu_cores."</td>\n";
+				echo "</tr>\n";
+				$c = ($c) ? 0 : 1;
+			}
+
 			echo "<tr class='tr_link_void'>\n";
-			echo "<td valign='top' class='".$row_style[$c]." hud_text'>".$text['label-cpu_usage']."</td>\n";
-			echo "<td valign='top' class='".$row_style[$c]." hud_text' style='text-align: right;'>".$percent_cpu."%</td>\n";
+			echo "<td valign='top' class='".$row_style[$c]." hud_text'>".$text['label-load_average']." (1)</td>\n";
+			echo "<td valign='top' class='".$row_style[$c]." hud_text' style='text-align: right;'>".$load_average[0]."</td>\n";
+			echo "</tr>\n";
+			$c = ($c) ? 0 : 1;
+
+			echo "<tr class='tr_link_void'>\n";
+			echo "<td valign='top' class='".$row_style[$c]." hud_text'>".$text['label-load_average']." (5)</td>\n";
+			echo "<td valign='top' class='".$row_style[$c]." hud_text' style='text-align: right;'>".$load_average[1]."</td>\n";
+			echo "</tr>\n";
+			$c = ($c) ? 0 : 1;
+
+			echo "<tr class='tr_link_void'>\n";
+			echo "<td valign='top' class='".$row_style[$c]." hud_text'>".$text['label-load_average']." (15)</td>\n";
+			echo "<td valign='top' class='".$row_style[$c]." hud_text' style='text-align: right;'>".$load_average[2]."</td>\n";
 			echo "</tr>\n";
 			$c = ($c) ? 0 : 1;
 		}
 
-		if (!empty($cpu_cores)) {
-			echo "<tr class='tr_link_void'>\n";
-			echo "<td valign='top' class='".$row_style[$c]." hud_text'>".$text['label-cpu_cores']."</td>\n";
-			echo "<td valign='top' class='".$row_style[$c]." hud_text' style='text-align: right;'>".$cpu_cores."</td>\n";
-			echo "</tr>\n";
-			$c = ($c) ? 0 : 1;
-		}
+		echo "</table>\n";
+		echo "</div>";
+		//$n++;
 
-		echo "<tr class='tr_link_void'>\n";
-		echo "<td valign='top' class='".$row_style[$c]." hud_text'>".$text['label-load_average']." (1)</td>\n";
-		echo "<td valign='top' class='".$row_style[$c]." hud_text' style='text-align: right;'>".$load_average[0]."</td>\n";
-		echo "</tr>\n";
-		$c = ($c) ? 0 : 1;
-
-		echo "<tr class='tr_link_void'>\n";
-		echo "<td valign='top' class='".$row_style[$c]." hud_text'>".$text['label-load_average']." (5)</td>\n";
-		echo "<td valign='top' class='".$row_style[$c]." hud_text' style='text-align: right;'>".$load_average[1]."</td>\n";
-		echo "</tr>\n";
-		$c = ($c) ? 0 : 1;
-
-		echo "<tr class='tr_link_void'>\n";
-		echo "<td valign='top' class='".$row_style[$c]." hud_text'>".$text['label-load_average']." (15)</td>\n";
-		echo "<td valign='top' class='".$row_style[$c]." hud_text' style='text-align: right;'>".$load_average[2]."</td>\n";
-		echo "</tr>\n";
-		$c = ($c) ? 0 : 1;
+		echo "<span class='hud_expander' onclick=\"$('#hud_system_cpu_status_details').slideToggle('fast'); toggle_grid_row_end('".$dashboard_name."')\"><span class='fas fa-ellipsis-h'></span></span>";
 	}
-
-	echo "</table>\n";
-	echo "</div>";
-	//$n++;
-
-	echo "<span class='hud_expander' onclick=\"$('#hud_system_cpu_status_details').slideToggle('fast');\"><span class='fas fa-ellipsis-h'></span></span>";
 	echo "</div>\n";
 
 ?>

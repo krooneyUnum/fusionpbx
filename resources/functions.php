@@ -23,7 +23,7 @@
 
 	  Contributor(s):
 	  Mark J Crane <markjcrane@fusionpbx.com>
-	  Tim Fry <tim.fry@hotmail.com>
+	  Tim Fry <tim@fusionpbx.com>
 	  Luis Daniel Lucio Quiroz <dlucio@okay.com.mx>
 	*/
 
@@ -149,12 +149,11 @@
 		function uuid() {
 			$uuid = null;
 			if (PHP_OS === 'FreeBSD') {
-				$uuid = trim(shell_exec("uuid -v 4"));
+				$uuid = trim(shell_exec("uuidgen"));
 				if (is_uuid($uuid)) {
 					return $uuid;
 				} else {
-					echo "Please install the following package.\n";
-					echo "pkg install ossp-uuid\n";
+					echo "Please install uuidgen.\n";
 					exit;
 				}
 			}
@@ -167,7 +166,7 @@
 					if (is_uuid($uuid)) {
 						return $uuid;
 					} else {
-						echo "Please install the uuidgen.\n";
+						echo "Please install uuidgen.\n";
 						exit;
 					}
 				}
@@ -323,8 +322,9 @@
 	//check if the permission exists
 	if (!function_exists('permission_exists')) {
 
-		function permission_exists($permission_name, $operator = 'or') {
-			$permission = new permissions;
+		function permission_exists($permission_name) {
+			$database = database::new();
+			$permission = new permissions($database);
 			return $permission->exists($permission_name);
 		}
 
@@ -348,7 +348,7 @@
 			global $domain_uuid;
 			$sql = "select * from v_user_groups ";
 			$sql .= "where group_name = 'superadmin' ";
-			$database = new database;
+			$database = database::new();
 			$result = $database->select($sql, null, 'all');
 			$superadmin_list = "||";
 			if (is_array($result) && @sizeof($result) != 0) {
@@ -393,7 +393,7 @@
 			$sql = "select distinct(" . $field_name . ") as " . $field_name . " ";
 			$sql .= "from " . $table_name . " " . $sql_where_optional . " ";
 			$sql .= "order by " . (!empty($sql_order_by) ? $sql_order_by : $field_name . ' asc');
-			$database = new database;
+			$database = database::new();
 			$result = $database->select($sql, null, 'all');
 			if (is_array($result) && @sizeof($result) != 0) {
 				foreach ($result as $field) {
@@ -441,7 +441,7 @@
 				$sql = "select distinct(" . $field_name . ") as " . $field_name . " from " . $table_name . " " . $sql_where_optional . " ";
 			}
 
-			$database = new database;
+			$database = database::new();
 			$result = $database->select($sql, null, 'all');
 			if (is_array($result) && @sizeof($result) != 0) {
 				foreach ($result as $field) {
@@ -681,7 +681,7 @@
 			$sql .= "and username = :username ";
 			$parameters['domain_uuid'] = $domain_uuid;
 			$parameters['username'] = $username;
-			$database = new database;
+			$database = database::new();
 			$num_rows = $database->select($sql, $parameters, 'column');
 			return $num_rows > 0 ? true : false;
 		}
@@ -698,7 +698,7 @@
 			$sql .= "and username = :username ";
 			$parameters['domain_uuid'] = $domain_uuid;
 			$parameters['username'] = $username;
-			$database = new database;
+			$database = database::new();
 			$user_uuid = $database->select($sql, $parameters, 'column');
 			unset($sql, $parameters);
 
@@ -709,7 +709,7 @@
 				$sql .= "and user_uuid = :user_uuid ";
 				$parameters['domain_uuid'] = $domain_uuid;
 				$parameters['user_uuid'] = $user_uuid;
-				$database = new database;
+				$database = database::new();
 				$num_rows = $database->select($sql, $parameters, 'column');
 				unset($sql, $parameters);
 
@@ -725,7 +725,7 @@
 					$p = new permissions;
 					$p->add('extension_user_add', 'temp');
 					//execute insert
-					$database = new database;
+					$database = database::new();
 					$database->app_name = 'function-add_extension_user';
 					$database->app_uuid = 'e68d9689-2769-e013-28fa-6214bf47fca3';
 					$database->save($array);
@@ -775,7 +775,7 @@
 				$p->add('user_add', 'temp');
 				$p->add('user_group_add', 'temp');
 				//execute insert
-				$database = new database;
+				$database = database::new();
 				$database->app_name = 'function-user_add';
 				$database->app_uuid = '15a8d74b-ac7e-4468-add4-3e6ebdcb8e22';
 				$database->save($array);
@@ -844,7 +844,7 @@
 		if (is_numeric(trim($phone_number ?? '', ' +'))) {
 			if (isset($_SESSION["format"]["phone"])) {
 				$phone_number = trim($phone_number, ' +');
-				foreach ($_SESSION["format"]["phone"] as &$format) {
+				foreach ($_SESSION["format"]["phone"] as $format) {
 					$format_count = substr_count($format, 'x');
 					$format_count = $format_count + substr_count($format, 'R');
 					$format_count = $format_count + substr_count($format, 'r');
@@ -1995,7 +1995,7 @@
 
 		function get_countries() {
 			$sql = "select * from v_countries order by country asc";
-			$database = new database;
+			$database = database::new();
 			$result = $database->select($sql, null, 'all');
 			unset($sql);
 
@@ -2451,6 +2451,72 @@ if (!function_exists('git_find_repos')) {
 			unset($git_repo_name);
 		}
 		return $git_repos;
+	}
+}
+
+//get contents of the supplied url
+if (!function_exists('url_get_contents')) {
+	function url_get_contents($URL){
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_VERBOSE, 1);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+		curl_setopt($ch, CURLOPT_URL, $URL);
+		$data = curl_exec($ch);
+		curl_close($ch);
+		return $data;
+	}
+}
+
+//get system memory details
+if (!function_exists('get_memory_details')) {
+	function get_memory_details() {
+		if (PHP_OS == 'Linux') {
+			$meminfo = file_get_contents("/proc/meminfo");
+			$data = [];
+
+			foreach (explode("\n", $meminfo) as $line) {
+				if (preg_match('/^(\w+):\s+(\d+)\skB$/', $line, $matches)) {
+					$data[$matches[1]] = $matches[2];
+				}
+			}
+
+			if (isset($data['MemTotal']) && isset($data['MemAvailable'])) {
+				$array['total_memory'] = $data['MemTotal'];
+				$array['available_memory'] = $data['MemAvailable'];
+				$array['used_memory'] = $array['total_memory'] - $array['available_memory'];
+
+				$array['memory_usage'] = ($array['used_memory'] / $array['total_memory']) * 100;
+				$array['memory_percent'] = round($array['memory_usage'], 2);
+				return $array;
+			}
+		}
+
+		if (PHP_OS == 'FreeBSD') {
+			//define the output array
+			$output = [];
+
+			// get the memory information using sysctl
+			exec('sysctl -n hw.physmem hw.pagesize vm.stats.vm.v_free_count vm.stats.vm.v_inactive_count vm.stats.vm.v_cache_count vm.stats.vm.v_wire_count', $output);
+
+			if (count($output) === 6) {
+				list($array['total_memory'], $page_size, $free_pages, $inactive_pages, $cache_pages, $wired_pages) = $output;
+
+				// total memory in bytes
+				$array['total_memory'] = (int)$array['total_memory'];
+
+				// pages to bytes conversion
+				$array['available_memory'] = ($free_pages + $inactive_pages + $cache_pages) * (int)$page_size;
+				$array['used_memory'] = $array['total_memory'] - $array['available_memory'];
+
+				// calculate memory usage percentage
+				$array['memory_usage'] = ($array['used_memory'] / $array['total_memory']) * 100;
+
+				$array['memory_percent'] = round($array['memory_usage'], 2) . '%';
+				return $array;
+			}
+		}
+
+		return false;
 	}
 }
 

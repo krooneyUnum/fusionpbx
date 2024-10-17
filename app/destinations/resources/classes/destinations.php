@@ -34,10 +34,13 @@ if (!class_exists('destinations')) {
 	class destinations {
 
 		/**
-		* destinations array
+		* declare public variables
 		*/
 		public $destinations;
 		public $domain_uuid;
+		public $start_stamp_begin;
+		public $start_stamp_end;
+		public $quick_select;
 
 		/**
 		* declare private variables
@@ -191,7 +194,7 @@ if (!class_exists('destinations')) {
 					//get the array from the app_config.php files
 					$config_list = glob($_SERVER["DOCUMENT_ROOT"] . PROJECT_PATH . "/*/*/app_config.php");
 					$x = 0;
-					foreach ($config_list as &$config_path) {
+					foreach ($config_list as $config_path) {
 						try {
 							include($config_path);
 						}
@@ -201,8 +204,8 @@ if (!class_exists('destinations')) {
 						$x++;
 					}
 					$i = 0;
-					foreach ($apps as $x => &$app) {
-						if (isset($app['destinations'])) foreach ($app['destinations'] as &$row) {
+					foreach ($apps as $x => $app) {
+						if (isset($app['destinations'])) foreach ($app['destinations'] as $row) {
 							if (permission_exists($this->singular($row["name"])."_destinations")) {
 								$this->destinations[] = $row;
 							}
@@ -566,7 +569,7 @@ if (!class_exists('destinations')) {
 				//get the array from the app_config.php files
 				$config_list = glob($_SERVER["DOCUMENT_ROOT"] . PROJECT_PATH . "/*/*/app_config.php");
 				$x = 0;
-				foreach ($config_list as &$config_path) {
+				foreach ($config_list as $config_path) {
 					try {
 						include($config_path);
 					}
@@ -576,9 +579,9 @@ if (!class_exists('destinations')) {
 					$x++;
 				}
 				$i = 0;
-				foreach ($apps as $x => &$app) {
+				foreach ($apps as $x => $app) {
 					if (isset($app['destinations'])) {
-						foreach ($app['destinations'] as &$row) {
+						foreach ($app['destinations'] as $row) {
 							$this->destinations[] = $row;
 						}
 					}
@@ -776,7 +779,7 @@ if (!class_exists('destinations')) {
 				//get the array from the app_config.php files
 				$config_list = glob($_SERVER["DOCUMENT_ROOT"] . PROJECT_PATH . "/*/*/app_config.php");
 				$x = 0;
-				foreach ($config_list as &$config_path) {
+				foreach ($config_list as $config_path) {
 					try {
 						include($config_path);
 					}
@@ -786,9 +789,9 @@ if (!class_exists('destinations')) {
 					$x++;
 				}
 				$i = 0;
-				foreach ($apps as $x => &$app) {
+				foreach ($apps as $x => $app) {
 					if (isset($app['destinations'])) {
-						foreach ($app['destinations'] as &$row) {
+						foreach ($app['destinations'] as $row) {
 							$this->destinations[] = $row;
 						}
 					}
@@ -1132,7 +1135,7 @@ if (!class_exists('destinations')) {
 				}
 
 			//build the date range
-				if ((!empty($this->start_stamp_begin) && strlen($this->start_stamp_begin) > 0) || !empty($this->start_stamp_end)) {
+				if (!empty($this->start_stamp_begin) || !empty($this->start_stamp_end)) {
 					unset($this->quick_select);
 					if (strlen($this->start_stamp_begin) > 0 && !empty($this->start_stamp_end)) {
 						$sql_date_range = " and start_stamp between :start_stamp_begin::timestamptz and :start_stamp_end::timestamptz \n";
@@ -1233,7 +1236,7 @@ if (!class_exists('destinations')) {
 				}
 				$sql .= " and direction = 'inbound' \n";
 				$sql .= " and caller_destination is not null \n";
-				$sql .= $sql_date_range;
+				$sql .= $sql_date_range ?? '';
 				$sql .= ") as c \n";
 
 				$sql .= "where \n";

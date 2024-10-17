@@ -20,6 +20,7 @@
 		$apps[$x]['description']['fr-fr'] = "Equipements pour provisioning.";
 		$apps[$x]['description']['he-il'] = "";
 		$apps[$x]['description']['it-it'] = "";
+		$apps[$x]['description']['ka-ge'] = "მოწყობილობები სამუშაოდ მოსამზადებლად(for provisioning).";
 		$apps[$x]['description']['nl-nl'] = "Voorzieningen voor toestellen.";
 		$apps[$x]['description']['pl-pl'] = "";
 		$apps[$x]['description']['pt-br'] = "Provisionamento de telefones IP.";
@@ -53,7 +54,7 @@
 		$apps[$x]['permissions'][$y]['groups'][] = "admin";
 		$y++;
 		$apps[$x]['permissions'][$y]['name'] = "device_address_uuid";
-		//$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
+		$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
 		//$apps[$x]['permissions'][$y]['groups'][] = "admin";
 		$y++;
 		$apps[$x]['permissions'][$y]['name'] = "device_label";
@@ -4311,6 +4312,18 @@
 		$y++;
 		$vendors[$y]['uuid'] = "d3e71b2e-f272-4455-ae46-6ac94bdd75cc";
 		$vendors[$y]['name'] = "sipnetic";
+		$z=0;
+
+	//acrobits details
+		$y++;
+		$vendors[$y]['uuid'] = "9c616373-99fb-4f7d-8713-d5b1da9aaef3";
+		$vendors[$y]['name'] = "acrobits";
+		$z=0;
+
+	//groundwire details
+		$y++;
+		$vendors[$y]['uuid'] = "c0a455ea-756e-48eb-991c-fb144770a059";
+		$vendors[$y]['name'] = "groundwire";
 		$z=0;
 
 ?>

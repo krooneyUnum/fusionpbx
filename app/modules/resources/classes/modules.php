@@ -17,7 +17,7 @@
 
  The Initial Developer of the Original Code is
  Mark J Crane <markjcrane@fusionpbx.com>
- Portions created by the Initial Developer are Copyright (C) 2008-2019
+ Portions created by the Initial Developer are Copyright (C) 2008-2024
  the Initial Developer. All Rights Reserved.
 
  Contributor(s):
@@ -674,7 +674,7 @@ if (!class_exists('modules')) {
 				//set the default
 					$result = false;
 				//look for the module
-					foreach ($this->modules as &$row) {
+					foreach ($this->modules as $row) {
 						if ($row['module_name'] == $name) {
 							$result = true;
 							break;
@@ -799,7 +799,7 @@ if (!class_exists('modules')) {
 					$xml .= "	</modules>\n";
 					$xml .= "</configuration>";
 
-					if (is_writable($_SESSION['switch']['conf']['dir'].'/autoload_configs/modules.conf.xml')) {
+					if (!empty($_SESSION['switch']['conf']['dir']) && is_writable($_SESSION['switch']['conf']['dir'].'/autoload_configs/modules.conf.xml')) {
 						$fout = fopen($_SESSION['switch']['conf']['dir']."/autoload_configs/modules.conf.xml","w");
 						fwrite($fout, $xml);
 						unset($xml);

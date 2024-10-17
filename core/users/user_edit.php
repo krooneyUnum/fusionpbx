@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -103,11 +103,13 @@
 	}
 
 //retrieve password requirements
-	$required['length'] = $_SESSION['users']['password_length']['numeric'];
-	$required['number'] = ($_SESSION['users']['password_number']['boolean'] == 'true') ? true : false;
-	$required['lowercase'] = ($_SESSION['users']['password_lowercase']['boolean'] == 'true') ? true : false;
-	$required['uppercase'] = ($_SESSION['users']['password_uppercase']['boolean'] == 'true') ? true : false;
-	$required['special'] = ($_SESSION['users']['password_special']['boolean'] == 'true') ? true : false;
+	if (permission_exists('user_password')) {
+		$required['length'] = $_SESSION['users']['password_length']['numeric'];
+		$required['number'] = ($_SESSION['users']['password_number']['boolean'] == 'true') ? true : false;
+		$required['lowercase'] = ($_SESSION['users']['password_lowercase']['boolean'] == 'true') ? true : false;
+		$required['uppercase'] = ($_SESSION['users']['password_uppercase']['boolean'] == 'true') ? true : false;
+		$required['special'] = ($_SESSION['users']['password_special']['boolean'] == 'true') ? true : false;
+	}
 
 //prepare the data
 	if (!empty($_POST)) {
@@ -213,7 +215,7 @@
 			}
 
 			//require passwords not allowed to be empty
-			if (permission_exists('user_add') && $action == 'add') {
+			if (permission_exists('user_password') && permission_exists('user_add') && $action == 'add') {
 				if (empty($password)) {
 					message::add($text['message-password_blank'], 'negative', 7500);
 				}
@@ -228,7 +230,7 @@
 			}
 
 			//require passwords with the defined required attributes: length, number, lower case, upper case, and special characters
-			if (!empty($password)) {
+			if (permission_exists('user_password') && !empty($password)) {
 				if (!empty($required['length']) && is_numeric($required['length']) && $required['length'] != 0) {
 					if (strlen($password) < $required['length']) {
 						$invalid[] = $text['label-characters'];
@@ -514,7 +516,7 @@
 			if (!empty($username) && (empty($username_old) || $username != $username_old)) {
 				$array['users'][$x]['username'] = $username;
 			}
-			if (!empty($password) && $password == $password_confirm) {
+			if (permission_exists('user_password') && !empty($password) && $password == $password_confirm) {
 				$array['users'][$x]['password'] = password_hash($password, PASSWORD_DEFAULT, $options);
 				$array['users'][$x]['salt'] = null;
 			}
@@ -671,36 +673,37 @@
 	$document['title'] = $text['title-user_edit'];
 
 //show the content
-	echo "<script>\n";
-	echo "	function compare_passwords() {\n";
-	echo "		if (document.getElementById('password') === document.activeElement || document.getElementById('password_confirm') === document.activeElement) {\n";
-	echo "			if ($('#password').val() != '' || $('#password_confirm').val() != '') {\n";
-	echo "				if ($('#password').val() != $('#password_confirm').val()) {\n";
-	echo "					$('#password').removeClass('formfld_highlight_good');\n";
-	echo "					$('#password_confirm').removeClass('formfld_highlight_good');\n";
-	echo "					$('#password').addClass('formfld_highlight_bad');\n";
-	echo "					$('#password_confirm').addClass('formfld_highlight_bad');\n";
-	echo "				}\n";
-	echo "				else {\n";
-	echo "					$('#password').removeClass('formfld_highlight_bad');\n";
-	echo "					$('#password_confirm').removeClass('formfld_highlight_bad');\n";
-	echo "					$('#password').addClass('formfld_highlight_good');\n";
-	echo "					$('#password_confirm').addClass('formfld_highlight_good');\n";
-	echo "				}\n";
-	echo "			}\n";
-	echo "		}\n";
-	echo "		else {\n";
-	echo "			$('#password').removeClass('formfld_highlight_bad');\n";
-	echo "			$('#password_confirm').removeClass('formfld_highlight_bad');\n";
-	echo "			$('#password').removeClass('formfld_highlight_good');\n";
-	echo "			$('#password_confirm').removeClass('formfld_highlight_good');\n";
-	echo "		}\n";
-	echo "	}\n";
-
-	echo "	function show_strength_meter() {\n";
-	echo "		$('#pwstrength_progress').slideDown();\n";
-	echo "	}\n";
-	echo "</script>\n";
+	if (permission_exists('user_password')) {
+		echo "<script>\n";
+		echo "	function compare_passwords() {\n";
+		echo "		if (document.getElementById('password') === document.activeElement || document.getElementById('password_confirm') === document.activeElement) {\n";
+		echo "			if ($('#password').val() != '' || $('#password_confirm').val() != '') {\n";
+		echo "				if ($('#password').val() != $('#password_confirm').val()) {\n";
+		echo "					$('#password').removeClass('formfld_highlight_good');\n";
+		echo "					$('#password_confirm').removeClass('formfld_highlight_good');\n";
+		echo "					$('#password').addClass('formfld_highlight_bad');\n";
+		echo "					$('#password_confirm').addClass('formfld_highlight_bad');\n";
+		echo "				}\n";
+		echo "				else {\n";
+		echo "					$('#password').removeClass('formfld_highlight_bad');\n";
+		echo "					$('#password_confirm').removeClass('formfld_highlight_bad');\n";
+		echo "					$('#password').addClass('formfld_highlight_good');\n";
+		echo "					$('#password_confirm').addClass('formfld_highlight_good');\n";
+		echo "				}\n";
+		echo "			}\n";
+		echo "		}\n";
+		echo "		else {\n";
+		echo "			$('#password').removeClass('formfld_highlight_bad');\n";
+		echo "			$('#password_confirm').removeClass('formfld_highlight_bad');\n";
+		echo "			$('#password').removeClass('formfld_highlight_good');\n";
+		echo "			$('#password_confirm').removeClass('formfld_highlight_good');\n";
+		echo "		}\n";
+		echo "	}\n";
+		echo "	function show_strength_meter() {\n";
+		echo "		$('#pwstrength_progress').slideDown();\n";
+		echo "	}\n";
+		echo "</script>\n";
+	}
 
 	echo "<form name='frm' id='frm' method='post'>\n";
 
@@ -722,6 +725,9 @@
 		echo button::create(['type'=>'button','label'=>$text['button-permissions'],'icon'=>'key','style'=>$button_margin,'link'=>PROJECT_PATH.'/app/user_permissions/user_permissions.php?id='.urlencode($user_uuid)]);
 		unset($button_margin);
 	}
+	if (permission_exists('user_setting_view')) {
+		echo button::create(['type'=>'button','label'=>$text['button-settings'],'icon'=>$_SESSION['theme']['button_icon_settings'],'id'=>'btn_settings','style'=>'','link'=>PROJECT_PATH.'/core/user_settings/user_settings.php?id='.urlencode($user_uuid)]);
+	}
 	echo button::create(['type'=>'button','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'id'=>'btn_save','style'=>'margin-left: 15px;','onclick'=>'submit_form();']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
@@ -730,6 +736,7 @@
 	echo $text['description-user_edit']."\n";
 	echo "<br /><br />\n";
 
+	echo "<div class='card'>\n";
 	echo "<table cellpadding='0' cellspacing='0' border='0' width='100%'>";
 
 	echo "	<tr>";
@@ -746,49 +753,51 @@
 	echo "		</td>";
 	echo "	</tr>";
 
-	echo "	<tr>";
-	echo "		<td class='vncell".(($action == 'add') ? 'req' : null)."' valign='top'>".$text['label-password']."</td>";
-	echo "		<td class='vtable'>";
-	echo "			<input type='password' style='display: none;' disabled='disabled'>"; //help defeat browser auto-fill
-	echo "			<input type='password' autocomplete='new-password' class='formfld' name='password' id='password' value=\"".escape($password ?? null)."\" ".($action == 'add' ? "required='required'" : null)." onkeypress='show_strength_meter();' onfocus='compare_passwords();' onkeyup='compare_passwords();' onblur='compare_passwords();'>";
-	echo "			<div id='pwstrength_progress' class='pwstrength_progress'></div><br />\n";
-	if ((!empty($required['length']) && is_numeric($required['length']) && $required['length'] != 0) || $required['number'] || $required['lowercase'] || $required['uppercase'] || $required['special']) {
-		echo $text['label-required'].': ';
-		if (is_numeric($required['length']) && $required['length'] != 0) {
-			echo $required['length']." ".$text['label-characters'];
-			if ($required['number'] || $required['lowercase'] || $required['uppercase'] || $required['special']) {
-				echo " (";
-			}
-		}
-		if ($required['number']) {
-			$required_temp[] = $text['label-number'];
-		}
-		if ($required['lowercase']) {
-			$required_temp[] = $text['label-lowercase'];
-		}
-		if ($required['uppercase']) {
-			$required_temp[] = $text['label-uppercase'];
-		}
-		if ($required['special']) {
-			$required_temp[] = $text['label-special'];
-		}
-		if (!empty($required_temp)) {
-			echo implode(', ',$required_temp);
+	if (permission_exists('user_password')) {
+		echo "	<tr>";
+		echo "		<td class='vncell".(($action == 'add') ? 'req' : null)."' valign='top'>".$text['label-password']."</td>";
+		echo "		<td class='vtable'>";
+		echo "			<input type='password' style='display: none;' disabled='disabled'>"; //help defeat browser auto-fill
+		echo "			<input type='password' autocomplete='new-password' class='formfld' name='password' id='password' value=\"".escape($password ?? null)."\" ".($action == 'add' ? "required='required'" : null)." onkeypress='show_strength_meter();' onfocus='compare_passwords();' onkeyup='compare_passwords();' onblur='compare_passwords();'>";
+		echo "			<div id='pwstrength_progress' class='pwstrength_progress'></div><br />\n";
+		if ((!empty($required['length']) && is_numeric($required['length']) && $required['length'] != 0) || $required['number'] || $required['lowercase'] || $required['uppercase'] || $required['special']) {
+			echo $text['label-required'].': ';
 			if (is_numeric($required['length']) && $required['length'] != 0) {
-				echo ")";
+				echo $required['length']." ".$text['label-characters'];
+				if ($required['number'] || $required['lowercase'] || $required['uppercase'] || $required['special']) {
+					echo " (";
+				}
 			}
+			if ($required['number']) {
+				$required_temp[] = $text['label-number'];
+			}
+			if ($required['lowercase']) {
+				$required_temp[] = $text['label-lowercase'];
+			}
+			if ($required['uppercase']) {
+				$required_temp[] = $text['label-uppercase'];
+			}
+			if ($required['special']) {
+				$required_temp[] = $text['label-special'];
+			}
+			if (!empty($required_temp)) {
+				echo implode(', ',$required_temp);
+				if (is_numeric($required['length']) && $required['length'] != 0) {
+					echo ")";
+				}
+			}
+			unset($required_temp);
 		}
-		unset($required_temp);
+		echo "		</td>";
+		echo "	</tr>";
+		echo "	<tr>";
+		echo "		<td class='vncell".(($action == 'add') ? 'req' : null)."' valign='top'>".$text['label-confirm_password']."</td>";
+		echo "		<td class='vtable'>";
+		echo "			<input type='password' autocomplete='new-password' class='formfld' name='password_confirm' id='password_confirm' value=\"".escape($password_confirm ?? null)."\" ".($action == 'add' ? "required='required'" : null)." onfocus='compare_passwords();' onkeyup='compare_passwords();' onblur='compare_passwords();'><br />\n";
+		echo "			".$text['message-green_border_passwords_match']."\n";
+		echo "		</td>";
+		echo "	</tr>";
 	}
-	echo "		</td>";
-	echo "	</tr>";
-	echo "	<tr>";
-	echo "		<td class='vncell".(($action == 'add') ? 'req' : null)."' valign='top'>".$text['label-confirm_password']."</td>";
-	echo "		<td class='vtable'>";
-	echo "			<input type='password' autocomplete='new-password' class='formfld' name='password_confirm' id='password_confirm' value=\"".escape($password_confirm ?? null)."\" ".($action == 'add' ? "required='required'" : null)." onfocus='compare_passwords();' onkeyup='compare_passwords();' onblur='compare_passwords();'><br />\n";
-	echo "			".$text['message-green_border_passwords_match']."\n";
-	echo "		</td>";
-	echo "	</tr>";
 
 	echo "	<tr>";
 	echo "		<td class='vncellreq'>".$text['label-email']."</td>";
@@ -1068,6 +1077,7 @@
 			echo button::create(['type'=>'button',
 				'label'=>$text['button-generate'],
 				'icon'=>'key',
+				'style'=>'margin-top: 1px; margin-bottom: 1px;',
 				'onclick'=>"document.getElementById('api_key').value = '".generate_password(32,3)."';
 					document.getElementById('frm').submit();"]);
 		}
@@ -1077,6 +1087,7 @@
 				'label'=>$text['button-view'],
 				'id'=>'button-api_key_view',
 				'icon'=>'key',
+				'style'=>'margin-top: 1px; margin-bottom: 1px;',
 				'onclick'=>"document.getElementById ('button-api_key_view').style.display = 'none';
 					document.getElementById('api_key').style.display = 'inline';
 					document.getElementById('button-api_key_hide').style.display = 'inline';
@@ -1202,6 +1213,7 @@
 	echo "</tr>\n";
 
 	echo "</table>";
+	echo "</div>\n";
 	echo "<br /><br />";
 
 	if ($action == 'edit') {
@@ -1214,14 +1226,8 @@
 
 	echo "</form>";
 
-	if (permission_exists("user_edit") && permission_exists('user_setting_view') && $action == 'edit') {
-		require $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH."/core/user_settings/user_settings.php";
-		echo "<br><br>";
-	}
-
-	echo "<script>\n";
-
 //hide password fields before submit
+	echo "<script>\n";
 	echo "	function submit_form() {\n";
 	echo "		hide_password_fields();\n";
 	echo "		$('form#frm').submit();\n";

@@ -176,10 +176,10 @@
 
 		<!-- SIP Transport -->
 		<!-- UDP, TCP, Tls Or Tcp -->
-		{if $row.sip_transport == ''}<item name="account.{$row.line_number}.sip.transport">TCP</item>{/if}
-		{if $row.sip_transport == 'UDP'}<item name="account.{$row.line_number}.sip.transport">UDP</item>{/if}
-		{if $row.sip_transport == 'TCP'}<item name="account.{$row.line_number}.sip.transport">TCP</item>{/if}
-		{if $row.sip_transport == 'TLS'}<item name="account.{$row.line_number}.sip.transport">Tls</item>{/if}
+		{if $row.sip_transport == ''}<item name="account.{$row.line_number}.sip.transport">1</item>{/if}
+		{if $row.sip_transport == 'udp'}<item name="account.{$row.line_number}.sip.transport">0</item>{/if}
+		{if $row.sip_transport == 'tcp'}<item name="account.{$row.line_number}.sip.transport">1</item>{/if}
+		{if $row.sip_transport == 'tls'}<item name="account.{$row.line_number}.sip.transport">2</item>{/if}
 
 		<!-- SIP Listening Mode -->
 		<!-- Transport_Only, Dual, Dual_BLF_Enforced, Dual_Secured -->
@@ -2132,7 +2132,7 @@
 
 		<!-- # Transfer Mode via VPK/MPK. -->
 		<!-- BlindTransfer, AttendedTransfer,  NewCall -->
-		<item name="call.transfer.modeViaVpk">BlindTransfer</item>
+		<item name="call.transfer.modeViaVpk">{$grandstream_transfer_mode_via_vpk}</item>
 
 		<!-- # Show On Hold Duration. Yes or No -->
 		<item name="call.hold.showHoldDuration.enable">Yes</item>
@@ -2485,11 +2485,19 @@
 		<!-- ##  Settings/Preferences / Date and Time -->
 		<!-- ############################################################################## -->
 		<!-- # NTP Server -->
+		{if isset($ntp_server_primary)}
+		<item name="dateTime.ntp.server.1">{$ntp_server_primary}</item>
+		{else}
 		<item name="dateTime.ntp.server.1">pool.ntp.org</item>
+		{/if}
 
 		<!-- # Secondary NTP Server -->
 		<!-- # String -->
-		<item name="dateTime.ntp.server.2"/>
+		{if isset($ntp_server_secondary)}
+		<item name="dateTime.ntp.server.2">{$ntp_server_secondary}</item>
+		{else}
+		<item name="dateTime.ntp.server.2">2.us.pool.ntp.org</item>
+		{/if}
 
 		<!-- # NTP Update Interval -->
 		<!-- # String -->

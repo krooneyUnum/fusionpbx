@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -387,6 +387,7 @@
 	echo $text['description']."\n";
 	echo "<br /><br />\n";
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 
 	echo "<tr>\n";
@@ -405,7 +406,7 @@
 	echo "	".$text['label-extension']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	echo "	<input class='formfld' type='text' name='conference_extension' maxlength='255' value=\"".escape($conference_extension)."\">\n";
+	echo "	<input class='formfld' type='text' name='conference_extension' maxlength='255' value=\"".escape($conference_extension)."\" required='required' placeholder=\"".($_SESSION['conference']['extension_range']['text'] ?? '')."\">\n";
 	echo "<br />\n";
 	echo "".$text['description-extension']."\n";
 	echo "</td>\n";
@@ -584,6 +585,7 @@
 	echo "</tr>\n";
 
 	echo "</table>";
+	echo "</div>\n";
 	echo "<br><br>";
 
 	if ($action == "update") {

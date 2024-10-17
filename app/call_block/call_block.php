@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -103,8 +103,7 @@
 	$sql = "select count(*) from view_call_block ";
 	$sql .= "where true ";
 	if ($show == "all" && permission_exists('call_block_all')) {
-		//$sql .= "and (domain_uuid = :domain_uuid or domain_uuid is null) ";
-		//$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+		//show all records across all domains
 	}
 	else {
 		$sql .= "and ( ";
@@ -115,7 +114,7 @@
 		$sql .= ") ";
 		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 	}
-	if (!permission_exists('call_block_all') && !empty($_SESSION['user']['extension'])) {
+	if (!permission_exists('call_block_extension') && !empty($_SESSION['user']['extension'])) {
 		$sql .= "and extension_uuid in (";
 		$x = 0;
 		foreach ($_SESSION['user']['extension'] as $field) {
@@ -181,7 +180,7 @@
 		$sql .= ") ";
 		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 	}
-	if (!permission_exists('call_block_all') && !empty($_SESSION['user']['extension']) && count($_SESSION['user']['extension']) > 0) {
+	if (!permission_exists('call_block_extension') && !empty($_SESSION['user']['extension']) && count($_SESSION['user']['extension']) > 0) {
 		$sql .= "and extension_uuid in (";
 		$x = 0;
 		foreach ($_SESSION['user']['extension'] as $field) {
@@ -222,12 +221,12 @@
 	$token = $object->create($_SERVER['PHP_SELF']);
 
 //include the header
-	$document['title'] = $text['title-call-block'];
+	$document['title'] = $text['title-call_block'];
 	require_once "resources/header.php";
 
 //show the content
 	echo "<div class='action_bar' id='action_bar'>\n";
-	echo "	<div class='heading'><b>".$text['title-call-block']." (".$num_rows.")</b></div>\n";
+	echo "	<div class='heading'><b>".$text['title-call_block']."</b><div class='count'>".number_format($num_rows)."</div></div>\n";
 	echo "	<div class='actions'>\n";
 	if (permission_exists('call_block_add')) {
 		echo button::create(['type'=>'button','label'=>$text['button-add'],'icon'=>$_SESSION['theme']['button_icon_add'],'id'=>'btn_add','link'=>'call_block_edit.php']);
@@ -278,6 +277,7 @@
 	echo "<input type='hidden' id='action' name='action' value=''>\n";
 	echo "<input type='hidden' name='search' value=\"".escape($search)."\">\n";
 
+	echo "<div class='card'>\n";
 	echo "<table class='list'>\n";
 	echo "<tr class='list-header'>\n";
 	if (permission_exists('call_block_add') || permission_exists('call_block_edit') || permission_exists('call_block_delete')) {
@@ -393,6 +393,7 @@
 	}
 
 	echo "</table>\n";
+	echo "</div>\n";
 	echo "<br />\n";
 	echo "<div align='center'>".$paging_controls."</div>\n";
 

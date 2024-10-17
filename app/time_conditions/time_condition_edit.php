@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -73,7 +73,7 @@
 		$dialplan_number = $_POST["dialplan_number"];
 		$dialplan_order = $_POST["dialplan_order"];
 
-		$dialplan_anti_action = $_POST["dialplan_anti_action"];
+		$dialplan_anti_action = $_POST["dialplan_anti_action"] ?? '';
 		$dialplan_anti_action_array = explode(":", $dialplan_anti_action);
 		$dialplan_anti_action_app = array_shift($dialplan_anti_action_array);
 		$dialplan_anti_action_data = join(':', $dialplan_anti_action_array);
@@ -272,7 +272,7 @@
 			if (is_array($_REQUEST['variable'])) {
 				foreach ($_REQUEST['variable'] as $group_id => $meh) {
 					if (
-						(!empty($_REQUEST['preset']) && is_array($_REQUEST['preset']) && in_array($group_id, $_REQUEST['preset']) && $_REQUEST['dialplan_action'][$group_id] == '' && $_REQUEST['default_preset_action'] == '' && $_REQUEST['dialplan_anti_action'] == '') ||
+						(!empty($_REQUEST['preset']) && is_array($_REQUEST['preset']) && in_array($group_id, $_REQUEST['preset']) && empty($_REQUEST['dialplan_action'][$group_id]) && empty($_REQUEST['default_preset_action']) && empty($_REQUEST['dialplan_anti_action'])) ||
 						((empty($_REQUEST['preset']) || !is_array($_REQUEST['preset']) || !in_array($group_id, $_REQUEST['preset'])) && $_REQUEST['dialplan_action'][$group_id] == '')
 						) {
 						unset($_REQUEST['variable'][$group_id]);
@@ -823,7 +823,7 @@
 					case 'hour': //hours of day
 						<?php
 						if ( $_SESSION['domain']['time_format']['text'] =="24h") {
-						
+
 							for ($h = 0; $h <= 23; $h++) {
 								echo "sel_start.options[sel_start.options.length] = new Option(".$h.", ".$h.");\n";
 								echo "sel_stop.options[sel_stop.options.length] = new Option(".$h.", ".$h.");\n";
@@ -978,6 +978,7 @@ echo "</div>\n";
 echo $text['description-time_conditions']."\n";
 echo "<br /><br />\n";
 
+echo "<div class='card'>\n";
 echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 
 echo "<tr>\n";
@@ -998,7 +999,7 @@ echo "<td class='vncellreq' valign='top' align='left' nowrap>\n";
 echo "	".$text['label-extension']."\n";
 echo "</td>\n";
 echo "<td class='vtable' align='left'>\n";
-echo "	<input class='formfld' type='text' name='dialplan_number' id='dialplan_number' maxlength='255' value=\"".escape($dialplan_number ?? null)."\">\n";
+echo "	<input class='formfld' type='text' name='dialplan_number' id='dialplan_number' maxlength='255' value=\"".escape($dialplan_number ?? null)."\" required='required' placeholder=\"".($_SESSION['time_conditions']['extension_range']['text'] ?? '')."\">\n";
 echo "	<br />\n";
 echo "	".$text['description-extension']."<br />\n";
 echo "</td>\n";
@@ -1029,7 +1030,7 @@ function add_custom_condition($destination, $group_id, $dialplan_action = '') {
 	//$destination = new destinations;
 	echo $destination->select('dialplan', 'dialplan_action['.$group_id.']', $dialplan_action);
 	echo "						</td>\n";
-	echo "						<td width='100%'><input class='formfld' style='margin-left: 5px;' type='text' name='group_".$group_id."' id='group_".$group_id."' maxlength='255' value=\"".$group_id."\"></td>\n";
+	echo "						<td><input class='formfld' style='margin-left: 5px; max-width: 50px; text-align: center;' type='text' name='group_".$group_id."' id='group_".$group_id."' maxlength='6' value=\"".$group_id."\"></td>\n";
 	echo "					</tr>";
 	echo "				</table>\n";
 	echo "			</td>\n";
@@ -1062,7 +1063,7 @@ if ($action == 'update') {
 
 							//adjust time one minute earlier to account for freeswitch one minute early on start condition behavior.
 							$cond_val_start = $cond_val_start - 1;
-							
+
 							$cond_val_start = number_pad(floor($cond_val_start / 60),2).":".number_pad(fmod($cond_val_start, 60),2);
 							if ($cond_val_stop != '') {
 								$cond_val_stop = number_pad(floor($cond_val_stop / 60),2).":".number_pad(fmod($cond_val_stop, 60),2);
@@ -1333,6 +1334,7 @@ if ($action == 'update') {
 	echo "</tr>\n";
 
 	echo "</table>\n";
+	echo "</div>\n";
 	echo "<br /><br />\n";
 
 	if ($action == "update") {

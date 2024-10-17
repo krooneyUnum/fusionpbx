@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2022
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -189,8 +189,27 @@
 	$offset = $rows_per_page * $page;
 
 //get the list
-	$sql = "select * from v_destinations ";
+	$sql = "select ";
+	$sql .= " d.destination_uuid, ";
+	$sql .= " d.domain_uuid, ";
 	if ($show == "all" && permission_exists('destination_all')) {
+		$sql .= " domain_name, ";
+	}
+	$sql .= " d.destination_type, ";
+	$sql .= " d.destination_prefix, ";
+	$sql .= " d.destination_trunk_prefix, ";
+	$sql .= " d.destination_area_code, ";
+	$sql .= " d.destination_number, ";
+	$sql .= " d.destination_actions, ";
+	$sql .= " d.destination_context, ";
+	$sql .= " d.destination_caller_id_name, ";
+	$sql .= " d.destination_caller_id_number, ";
+	$sql .= " d.destination_enabled, ";
+	$sql .= " d.destination_description ";
+	$sql .= "from v_destinations as d ";
+	if ($show == "all" && permission_exists('destination_all')) {
+		$sql .= "LEFT JOIN v_domains as dom ";
+		$sql .= "ON d.domain_uuid = dom.domain_uuid ";
 		$sql .= "where destination_type = :destination_type ";
 	}
 	else {
@@ -200,17 +219,17 @@
 	}
 	if (!empty($search)) {
 		$sql .= "and (";
-		$sql .= "lower(destination_type) like :search ";
-		$sql .= "or lower(destination_number) like :search ";
-		$sql .= "or lower(destination_context) like :search ";
-		$sql .= "or lower(destination_accountcode) like :search ";
+		$sql .= " lower(destination_type) like :search ";
+		$sql .= " or lower(destination_number) like :search ";
+		$sql .= " or lower(destination_context) like :search ";
+		$sql .= " or lower(destination_accountcode) like :search ";
 		if (permission_exists('outbound_caller_id_select')) {
-			$sql .= "or lower(destination_caller_id_name) like :search ";
-			$sql .= "or destination_caller_id_number like :search ";
+			$sql .= " or lower(destination_caller_id_name) like :search ";
+			$sql .= " or destination_caller_id_number like :search ";
 		}
-		$sql .= "or lower(destination_enabled) like :search ";
-		$sql .= "or lower(destination_description) like :search ";
-		$sql .= "or lower(destination_data) like :search ";
+		$sql .= " or lower(destination_enabled) like :search ";
+		$sql .= " or lower(destination_description) like :search ";
+		$sql .= " or lower(destination_data) like :search ";
 		$sql .= ") ";
 		$parameters['search'] = '%'.$search.'%';
 	}
@@ -219,6 +238,32 @@
 	$database = new database;
 	$destinations = $database->select($sql, $parameters, 'all');
 	unset($sql, $parameters);
+
+//update the array to add the actions
+	if (!$show == "all") {
+		$x = 0;
+		foreach ($destinations as $row) {
+			if (!empty($row['destination_actions'])) {
+				//prepare the destination actions
+				if (!empty(json_decode($row['destination_actions'], true))) {
+					foreach (json_decode($row['destination_actions'], true) as $action) {
+						$destination_app_data[] = $action['destination_app'].':'.$action['destination_data'];
+					}
+				}
+
+				//add the actions to the array
+				$actions = action_name($destination_array, $destination_app_data);
+				$destinations[$x]['actions'] = (!empty($actions)) ? implode(', ', $actions) : '';
+
+				//empty the array before the next iteration
+				unset($destination_app_data);
+			}
+			else {
+				$destinations[$x]['actions'] = '';
+			}
+			$x++;
+		}
+	}
 
 //create token
 	$object = new token;
@@ -230,11 +275,13 @@
 
 //show the content
 	echo "<div class='action_bar' id='action_bar'>\n";
-	echo "	<div class='heading'><b>".$text['title-destinations']." (".$num_rows.")</b></div>\n";
+	echo "	<div class='heading'><b>".$text['title-destinations']."</b><div class='count'>".number_format($num_rows)."</div></div>\n";
 	echo "	<div class='actions'>\n";
 	echo button::create(['type'=>'button','label'=>$text['button-inbound'],'icon'=>'location-arrow fa-rotate-90','link'=>'?type=inbound'.($show == 'all' ? '&show=all' : null).($search != '' ? "&search=".urlencode($search) : null)]);
 	echo button::create(['type'=>'button','label'=>$text['button-outbound'],'icon'=>'location-arrow','link'=>'?type=outbound'.($show == 'all' ? '&show=all' : null).($search != '' ? "&search=".urlencode($search) : null)]);
-	echo button::create(['type'=>'button','label'=>$text['button-local'],'icon'=>'vector-square','link'=>'?type=local'.($show == 'all' ? '&show=all' : null).($search != '' ? "&search=".urlencode($search) : null)]);
+	if (permission_exists('destination_local')) {
+		echo button::create(['type'=>'button','label'=>$text['button-local'],'icon'=>'vector-square','link'=>'?type=local'.($show == 'all' ? '&show=all' : null).($search != '' ? "&search=".urlencode($search) : null)]);
+	}
 	if (permission_exists('destination_import')) {
 		echo button::create(['type'=>'button','label'=>$text['button-import'],'icon'=>$_SESSION['theme']['button_icon_import'],'link'=>'destination_imports.php']);
 	}
@@ -280,6 +327,7 @@
 	echo "<input type='hidden' name='type' value=\"".escape($destination_type)."\">\n";
 	echo "<input type='hidden' name='search' value=\"".escape($search)."\">\n";
 
+	echo "<div class='card'>\n";
 	echo "<table class='list'>\n";
 	echo "<tr class='list-header'>\n";
 	if (permission_exists('destination_delete')) {
@@ -320,16 +368,6 @@
 		$x = 0;
 		foreach ($destinations as $row) {
 
-			//prepare the destination actions
-			if (!empty($row['destination_actions'])) {
-				$destination_actions = json_decode($row['destination_actions'], true);
-				if (!empty($destination_actions)) {
-					foreach ($destination_actions as $action) {
-						$destination_app_data[] = $action['destination_app'].':'.$action['destination_data'];
-					}
-				}
-			}
-
 			//create the row link
 			if (permission_exists('destination_edit')) {
 				$list_row_url = "destination_edit.php?id=".urlencode($row['destination_uuid']);
@@ -344,8 +382,8 @@
 				echo "	</td>\n";
 			}
 			if ($show == "all" && permission_exists('destination_all')) {
-				if (!empty($_SESSION['domains'][$row['domain_uuid']]['domain_name'])) {
-					$domain = $_SESSION['domains'][$row['domain_uuid']]['domain_name'];
+				if (!empty($row['domain_name'])) {
+					$domain = $row['domain_name'];
 				}
 				else {
 					$domain = $text['label-global'];
@@ -372,8 +410,7 @@
 			echo "	</td>\n";
 
 			if (!$show == "all") {
-				$actions = action_name($destination_array, $destination_app_data);
-				echo "	<td class='overflow' style='min-width: 125px;'>".(!empty($actions) ? implode(', ', $actions) : null)."&nbsp;</td>\n";
+				echo "	<td class='overflow' style='min-width: 125px;'>".$row['actions']."&nbsp;</td>\n";
 			}
 			if (permission_exists("destination_context")) {
 				echo "	<td>".escape($row['destination_context'])."&nbsp;</td>\n";
@@ -401,6 +438,7 @@
 	}
 
 	echo "</table>\n";
+	echo "</div>\n";
 	echo "<br />\n";
 	echo "<div align='center'>".$paging_controls."</div>\n";
 

@@ -20,6 +20,7 @@
 		$apps[$x]['description']['fr-fr'] = "";
 		$apps[$x]['description']['he-il'] = "";
 		$apps[$x]['description']['it-it'] = "";
+		$apps[$x]['description']['ka-ge'] = "";
 		$apps[$x]['description']['nl-nl'] = "";
 		$apps[$x]['description']['pl-pl'] = "";
 		$apps[$x]['description']['pt-br'] = "";
@@ -1569,6 +1570,14 @@
 		$apps[$x]['default_settings'][$y]['default_setting_value'] = "0";
 		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "true";
 		$apps[$x]['default_settings'][$y]['default_setting_description'] = "Options: 0-Disabled, 1-Enabled";	
+		$y++;
+		$apps[$x]['default_settings'][$y]['default_setting_uuid'] = "fe750e00-906b-4ade-bb94-be3dd1d2f9f5";
+		$apps[$x]['default_settings'][$y]['default_setting_category'] = "provision";
+		$apps[$x]['default_settings'][$y]['default_setting_subcategory'] = "yealink_ps_enabled";
+		$apps[$x]['default_settings'][$y]['default_setting_name'] = "numeric";
+		$apps[$x]['default_settings'][$y]['default_setting_value'] = "0";
+		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "true";
+		$apps[$x]['default_settings'][$y]['default_setting_description'] = "Saving Enabled. Options: 0-Disabled, 1-Enabled";	
 		$y++;
 
 ?>

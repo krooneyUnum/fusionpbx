@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Copyright (C) 2008-2023
+	Copyright (C) 2008-2024
 	All Rights Reserved.
 
 	Contributor(s):
@@ -118,7 +118,8 @@
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
-	
+
+	echo "<div class='card'>\n";
 	echo "<table cellpadding='0' cellspacing='0' border='0' width='100%'>\n";
 	echo "	<tr>\n";
 	echo "		<td width='50%' style='vertical-align: top;'>\n";
@@ -172,7 +173,7 @@
 		echo "			<select class='formfld' name='extension_uuid' id='extension_uuid'>\n";
 		echo "				<option value=''></option>";
 		if (is_array($extensions) && @sizeof($extensions) != 0) {
-			foreach ($extensions as &$row) {
+			foreach ($extensions as $row) {
 				$selected = (!empty($caller_extension_uuid) && $row['extension_uuid'] == $caller_extension_uuid) ? "selected" : null;
 				echo "			<option value='".escape($row['extension_uuid'])."' ".escape($selected).">".((is_numeric($row['extension'])) ? escape($row['extension']) : escape($row['number_alias'])." (".escape($row['extension']).")")."</option>";
 			}
@@ -325,7 +326,7 @@
 			echo "			<select class='formfld' name='call_center_queue_uuid' id='call_center_queue_uuid'>\n";
 			echo "				<option value=''></option>";
 			if (is_array($call_center_queues) && @sizeof($call_center_queues) != 0) {
-				foreach ($call_center_queues as &$row) {
+				foreach ($call_center_queues as $row) {
 					$selected = ($row['call_center_queue_uuid'] == $call_center_queue_uuid) ? "selected" : null;
 					echo "		<option value='".escape($row['call_center_queue_uuid'])."' ".escape($selected).">".((is_numeric($row['queue_extension'])) ? escape($row['queue_extension']." (".$row['queue_name'].")") : escape($row['queue_extension'])." (".escape($row['queue_extension']).")")."</option>";
 				}
@@ -341,6 +342,7 @@
 	echo "		</td>";
 	echo "	</tr>";
 	echo "</table>";
+	echo "</div>\n";
 	echo "<br><br>";
 	
 	echo "</form>";

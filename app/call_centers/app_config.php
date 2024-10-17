@@ -21,6 +21,7 @@
 		$apps[$x]['description']['fr-fr'] = "Files d'attente d'appels entrants distribu%uFFFDs aux agents disponibles.";
 		$apps[$x]['description']['he-il'] = "";
 		$apps[$x]['description']['it-it'] = "";
+		$apps[$x]['description']['ka-ge'] = "რიგები შემომავალი ზარების სამართავად და ამ ზარების ხელმისაწვდომ აგენტებთან გადასამისამართებლად.";
 		$apps[$x]['description']['nl-nl'] = "Wachtrijen voor beheer van inkomede gesprekken en routering naar beschikbare agenten.";
 		$apps[$x]['description']['pl-pl'] = "";
 		$apps[$x]['description']['pt-br'] = "As filas servem para gerenciar as chamadas que entram e encaminhar as mesmas para os agentes disponíveis.";
@@ -218,6 +219,14 @@
 		$apps[$x]['default_settings'][$y]['default_setting_value'] = "\${sip_from_user}-\${sip_to_user}-\${strftime(%Y)}\${strftime(%b)}\${strftime(%d)}.\${record_ext}";
 		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "false";
 		$apps[$x]['default_settings'][$y]['default_setting_description'] = "Custom name for call recording. Options: \${record_ext}, \${sip_from_user}, \${sip_to_user}, \${caller_id_number}, \${uuid}";
+		$y++;
+		$apps[$x]['default_settings'][$y]['default_setting_uuid'] = "4c939d81-7192-4d9a-b7c4-76695a005d4f";
+		$apps[$x]['default_settings'][$y]['default_setting_category'] = "call_center";
+		$apps[$x]['default_settings'][$y]['default_setting_subcategory'] = "extension_range";
+		$apps[$x]['default_settings'][$y]['default_setting_name'] = "text";
+		$apps[$x]['default_settings'][$y]['default_setting_value'] = "400-499";
+		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "false";
+		$apps[$x]['default_settings'][$y]['default_setting_description'] = "Set the suggested extension range(s) for call center queues";
 
 	//cache details
 		$apps[$x]['cache']['key'] = "dialplan.\${domain_name}";

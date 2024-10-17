@@ -95,8 +95,7 @@
 				//save to the data
 					$database->app_name = 'extensions';
 					$database->app_uuid = 'e68d9689-2769-e013-28fa-6214bf47fca3';
-					$database->save($array);
-					$message = $database->message;
+					$message = $database->save($array);
 
 				//update the session array
 					if ($message['message'] == 'OK' && $message['code'] == '200') {
@@ -173,12 +172,12 @@
 		//caller id
 			echo "<div class='hud_box'>\n";
 
-			echo "	<div style='display: flex; flex-wrap: wrap; justify-content: center; padding-bottom: 20px;' onclick=\"$('#hud_caller_id_details').slideToggle('fast');\">\n";
-			echo "		<span class='hud_title' style='color: ".$dashboard_heading_text_color.";'>".$text['label-caller_id_number']."</span>\n";
+			echo "	<div class='hud_content'  ".($dashboard_details_state == "disabled" ?: "onclick=\"$('#hud_caller_id_details').slideToggle('fast'); toggle_grid_row_end('".$dashboard_name."')\"").">\n";
+			echo "		<span class='hud_title'>".$text['label-caller_id_number']."</span>\n";
 
 		//doughnut chart
-			if ($dashboard_chart_type == "doughnut") {
-				echo "<div style='width: 275px; height: 143px;'><canvas id='caller_id_chart'></canvas></div>\n";
+			if (!isset($dashboard_chart_type) || $dashboard_chart_type == "doughnut") {
+				echo "<div class='hud_chart' style='width: 275px;'><canvas id='caller_id_chart'></canvas></div>\n";
 
 				echo "<script>\n";
 				echo "	const caller_id_chart = new Chart(\n";
@@ -197,11 +196,11 @@
 				echo "						0.00001,\n";
 				echo "						],\n";
 				echo "					backgroundColor: [\n";
-				echo "						'".$_SESSION['dashboard']['caller_id_chart_color_defined']['text']."',\n";
-				echo "						'".$_SESSION['dashboard']['caller_id_chart_color_undefined']['text']."',\n";
+				echo "						'".($settings->get('theme', 'dashboard_caller_id_chart_color_defined') ?? '#d4d4d4')."',\n";
+				echo "						'".($settings->get('theme', 'dashboard_caller_id_chart_color_undefined') ?? '#ea4c46')."'\n";
 				echo "					],\n";
-				echo "					borderColor: '".$_SESSION['dashboard']['caller_id_chart_border_color']['text']."',\n";
-				echo "					borderWidth: '".$_SESSION['dashboard']['caller_id_chart_border_width']['text']."'\n";
+				echo "					borderColor: '".$settings->get('theme', 'dashboard_chart_border_color')."',\n";
+				echo "					borderWidth: '".$settings->get('theme', 'dashboard_chart_border_width')."'\n";
 				echo "				}]\n";
 				echo "			},\n";
 				echo "			options: {\n";
@@ -216,7 +215,7 @@
 				echo "						labels: {\n";
 				echo "							usePointStyle: true,\n";
 				echo "							pointStyle: 'rect',\n";
-				echo "							color: '".$dashboard_heading_text_color."'\n";
+				echo "							color: '".$dashboard_label_text_color."'\n";
 				echo "						}\n";
 				echo "					}\n";
 				echo "				}\n";
@@ -225,7 +224,7 @@
 				echo "				id: 'chart_number',\n";
 				echo "				beforeDraw(chart, args, options){\n";
 				echo "					const {ctx, chartArea: {top, right, bottom, left, width, height} } = chart;\n";
-				echo "					ctx.font = chart_text_size + 'px ' + chart_text_font;\n";
+				echo "					ctx.font = chart_text_size + ' ' + chart_text_font;\n";
 				echo "					ctx.textBaseline = 'middle';\n";
 				echo "					ctx.textAlign = 'center';\n";
 				echo "					ctx.fillStyle = '".$dashboard_number_text_color."';\n";
@@ -237,80 +236,82 @@
 				echo "	);\n";
 				echo "</script>\n";
 			}
-			if ($dashboard_chart_type == "none") {
-				echo "	<span class='hud_stat' style='color: ".$dashboard_number_text_color.";'>".$stats['undefined']."</span>";
+			if ($dashboard_chart_type == "number") {
+				echo "	<span class='hud_stat'>".$stats['undefined']."</span>";
 			}
 			echo "	</div>\n";
 
 		//details
-			echo "<form id='form_list_caller_id' method='post' action='".PROJECT_PATH."/app/extensions/resources/dashboard/caller_id.php'>\n";
+			if ($dashboard_details_state != 'disabled') {
+				echo "<form id='form_list_caller_id' method='post' action='".PROJECT_PATH."/app/extensions/resources/dashboard/caller_id.php'>\n";
 
-			echo "<div class='hud_details hud_box' id='hud_caller_id_details' style='text-align: right;'>";
+				echo "<div class='hud_details hud_box' id='hud_caller_id_details' style='text-align: right;'>";
 
-			if (is_array($extensions) && @sizeof($extensions) != 0) {
-				echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'collapse'=>false,'style'=>"position: absolute; margin-top: -35px; margin-left: -72px;"]);
-			}
-
-			echo "<table class='tr_hover' width='100%' cellpadding='0' cellspacing='0' border='0'>\n";
-			echo "<tr style='position: -webkit-sticky; position: sticky; z-index: 5; top: 0;'>\n";
-			echo "<th class='hud_heading'>".$text['label-extension']."</th>\n";
-			echo "<th class='hud_heading'>".$text['label-caller_id']."</th>\n";
-			if (!permission_exists('outbound_caller_id_select')) {
-				echo "<th class='hud_heading'>".$text['label-destination']."</th>\n";
-			}
-			echo "</tr>\n";
-
-		//data
-			if (is_array($extensions) && @sizeof($extensions) != 0) {
-				$x = 0;
-				foreach ($extensions as $row) {
-					$tr_link = PROJECT_PATH."/app/extensions/extension_edit.php?id=".$row['extension_uuid'];
-					echo "<tr href='".$tr_link."'>\n";
-					echo "	<td valign='top' class='".$row_style[$c]." hud_text'>";
-					echo 		"<a href='".$tr_link."' title=\"".$text['button-edit']."\">".escape($row['destination'])."</a>";
-					if (is_uuid($row['extension_uuid'])) {
-						echo 	"<input type='hidden' name='extensions[".$x."][extension_uuid]' value=\"".escape($row['extension_uuid'])."\">\n";
-					}
-					echo "	</td>\n";
-					//select caller id
-					if (permission_exists('outbound_caller_id_select')) {
-						echo "<td valign='top' class='".$row_style[$c]." hud_text input tr_link_void'>";
-						if (count($destinations) > 0) {
-							echo "<select class='formfld' name='extensions[".$x."][outbound_caller_id]' id='outbound_caller_id_number_".$x."' style='width: 100%; min-width: 150px;'>\n";
-							echo "	<option value=''></option>\n";
-							foreach ($destinations as &$field) {
-								if (!empty($field['destination_caller_id_number'])) {
-									echo "<option value='".escape($field['destination_caller_id_name'])."@".escape($field['destination_caller_id_number'])."' ".($row['outbound_caller_id_number'] == $field['destination_caller_id_number'] ? "selected='selected'" : null).">".escape($field['destination_caller_id_name'])." ".escape($field['destination_caller_id_number'])."</option>\n";
-								}
-							}
-							echo "</select>\n";
-						}
-						echo "</td>\n";
-					}
-					//input caller id
-					else {
-						echo "<td valign='top' class='".$row_style[$c]." hud_text input tr_link_void'>";
-						echo "	<input class='formfld' style='width: 100%; min-width: 80px;' type='text' name='extensions[".$x."][outbound_caller_id_name]' maxlength='255' value=\"".escape($row['outbound_caller_id_name'])."\">\n";
-						echo "</td>\n";
-						echo "<td valign='top' class='".$row_style[$c]." hud_text input tr_link_void'>";
-						echo "	<input class='formfld' style='width: 100%; min-width: 80px;' type='text' name='extensions[".$x."][outbound_caller_id_number]' maxlength='255' value=\"".$row['outbound_caller_id_number']."\">\n";
-						echo "</td>\n";
-					}
-					echo "</tr>\n";
-					$x++;
-					$c = ($c) ? 0 : 1;
+				if (is_array($extensions) && @sizeof($extensions) != 0) {
+					echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'collapse'=>false,'style'=>"position: absolute; margin-top: -35px; margin-left: -72px;"]);
 				}
-				unset($extensions);
+
+				echo "<table class='tr_hover' width='100%' cellpadding='0' cellspacing='0' border='0'>\n";
+				echo "<tr style='position: -webkit-sticky; position: sticky; z-index: 5; top: 0;'>\n";
+				echo "<th class='hud_heading'>".$text['label-extension']."</th>\n";
+				echo "<th class='hud_heading'>".$text['label-caller_id']."</th>\n";
+				if (!permission_exists('outbound_caller_id_select')) {
+					echo "<th class='hud_heading'>".$text['label-destination']."</th>\n";
+				}
+				echo "</tr>\n";
+
+			//data
+				if (is_array($extensions) && @sizeof($extensions) != 0) {
+					$x = 0;
+					foreach ($extensions as $row) {
+						$tr_link = PROJECT_PATH."/app/extensions/extension_edit.php?id=".$row['extension_uuid'];
+						echo "<tr href='".$tr_link."'>\n";
+						echo "	<td valign='top' class='".$row_style[$c]." hud_text'>";
+						echo 		"<a href='".$tr_link."' title=\"".$text['button-edit']."\">".escape($row['destination'])."</a>";
+						if (is_uuid($row['extension_uuid'])) {
+							echo 	"<input type='hidden' name='extensions[".$x."][extension_uuid]' value=\"".escape($row['extension_uuid'])."\">\n";
+						}
+						echo "	</td>\n";
+						//select caller id
+						if (permission_exists('outbound_caller_id_select')) {
+							echo "<td valign='top' class='".$row_style[$c]." hud_text input tr_link_void'>";
+							if (count($destinations) > 0) {
+								echo "<select class='formfld' name='extensions[".$x."][outbound_caller_id]' id='outbound_caller_id_number_".$x."' style='width: 100%; min-width: 150px;'>\n";
+								echo "	<option value=''></option>\n";
+								foreach ($destinations as $field) {
+									if (!empty($field['destination_caller_id_number'])) {
+										echo "<option value='".escape($field['destination_caller_id_name'])."@".escape($field['destination_caller_id_number'])."' ".($row['outbound_caller_id_number'] == $field['destination_caller_id_number'] ? "selected='selected'" : null).">".escape($field['destination_caller_id_name'])." ".escape($field['destination_caller_id_number'])."</option>\n";
+									}
+								}
+								echo "</select>\n";
+							}
+							echo "</td>\n";
+						}
+						//input caller id
+						else {
+							echo "<td valign='top' class='".$row_style[$c]." hud_text input tr_link_void'>";
+							echo "	<input class='formfld' style='width: 100%; min-width: 80px;' type='text' name='extensions[".$x."][outbound_caller_id_name]' maxlength='255' value=\"".escape($row['outbound_caller_id_name'])."\">\n";
+							echo "</td>\n";
+							echo "<td valign='top' class='".$row_style[$c]." hud_text input tr_link_void'>";
+							echo "	<input class='formfld' style='width: 100%; min-width: 80px;' type='text' name='extensions[".$x."][outbound_caller_id_number]' maxlength='255' value=\"".$row['outbound_caller_id_number']."\">\n";
+							echo "</td>\n";
+						}
+						echo "</tr>\n";
+						$x++;
+						$c = ($c) ? 0 : 1;
+					}
+					unset($extensions);
+				}
+
+				echo "</table>\n";
+				echo "</div>";
+				//$n++;
+
+				echo "<input type='hidden' name='".$token['name']."' value='".$token['hash']."'>\n";
+				echo "</form>\n";
+
+				echo "<span class='hud_expander' onclick=\"$('#hud_caller_id_details').slideToggle('fast'); toggle_grid_row_end('".$dashboard_name."')\"><span class='fas fa-ellipsis-h'></span></span>";
 			}
-
-			echo "</table>\n";
-			echo "</div>";
-			//$n++;
-
-			echo "<input type='hidden' name='".$token['name']."' value='".$token['hash']."'>\n";
-			echo "</form>\n";
-
-			echo "<span class='hud_expander' onclick=\"$('#hud_caller_id_details').slideToggle('fast');\"><span class='fas fa-ellipsis-h'></span></span>";
 			echo "</div>\n";
 
 	}

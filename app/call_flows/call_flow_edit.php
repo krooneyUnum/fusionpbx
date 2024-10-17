@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -458,6 +458,7 @@
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 
 	echo "<tr>\n";
@@ -476,7 +477,7 @@
 	echo "	".$text['label-call_flow_extension']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	echo "	<input class='formfld' type='text' name='call_flow_extension' maxlength='255' value=\"".escape($call_flow_extension)."\">\n";
+	echo "	<input class='formfld' type='text' name='call_flow_extension' maxlength='255' value=\"".escape($call_flow_extension)."\" required='required' placeholder=\"".($_SESSION['call_flow']['extension_range']['text'] ?? '')."\">\n";
 	echo "<br />\n";
 	echo $text['description-call_flow_extension']."\n";
 	echo "</td>\n";
@@ -793,6 +794,7 @@
 	echo "</tr>\n";
 
 	echo "</table>";
+	echo "</div>\n";
 	echo "<br /><br />";
 
 	if ($action == "update") {
