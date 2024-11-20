@@ -336,7 +336,10 @@
 					break;
 				case "0021f2":
 					$device_vendor = "flyingvoice";
-					break;					
+					break;
+				case "f00786":
+					$device_vendor = "bittel";
+					break;
 				default:
 					$device_vendor = "";
 				}
@@ -401,6 +404,9 @@
 					}
 					if (preg_replace('/^.*?(avaya).*$/i', '$1', $agent) == "avaya") {
 						return "avaya";
+					}
+					if (preg_replace('/^.*?(BITTEL).*$/i', '$1', $agent) == "bittel") {
+						return "bittel";
 					}
 					// unknown vendor
 					return "";

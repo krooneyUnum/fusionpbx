@@ -41,6 +41,8 @@
 
 //connect to database
 	$database = database::new();
+
+//create the settings object
 	$settings = new settings(['database' => $database, 'domain_uuid' => $_SESSION['domain_uuid'] ?? '', 'user_uuid' => $_SESSION['user_uuid'] ?? '']);
 
 //add multi-lingual support
@@ -378,7 +380,9 @@
 			}
 			$array["ring_groups"][0]["ring_group_distinctive_ring"] = $ring_group_distinctive_ring;
 			$array["ring_groups"][0]["ring_group_ringback"] = $ring_group_ringback;
-			$array["ring_groups"][0]["ring_group_call_screen_enabled"] = $ring_group_call_screen_enabled;
+			if (permission_exists('ring_group_call_screen_enabled')) {
+				$array["ring_groups"][0]["ring_group_call_screen_enabled"] = $ring_group_call_screen_enabled;
+			}
 			$array["ring_groups"][0]["ring_group_call_forward_enabled"] = $ring_group_call_forward_enabled;
 			$array["ring_groups"][0]["ring_group_follow_me_enabled"] = $ring_group_follow_me_enabled;
 			if (permission_exists('ring_group_missed_call')) {
