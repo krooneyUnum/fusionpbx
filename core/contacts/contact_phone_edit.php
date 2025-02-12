@@ -132,7 +132,7 @@
 					$array['contacts'][0]['last_mod_date'] = 'now()';
 					$array['contacts'][0]['last_mod_user'] = $_SESSION['username'];
 
-					$p = new permissions;
+					$p = permissions::new();
 					$p->add('contact_edit', 'temp');
 
 					$database = new database;
@@ -153,6 +153,32 @@
 						$database = new database;
 						$database->execute($sql, $parameters);
 						unset($sql, $parameters);
+					}
+
+				//if speed dial number already exists, empty before save
+					if (!empty($phone_speed_dial)) {
+						$phone_speed_dial_exists = false;
+						if (is_numeric($phone_speed_dial)) {
+							$sql = "select count(contact_phone_uuid) ";
+							$sql .= "from v_contact_phones ";
+							$sql .= "where phone_speed_dial = :phone_speed_dial ";
+							$sql .= "and domain_uuid = :domain_uuid ";
+							if ($action == "update" && is_uuid($contact_phone_uuid)) {
+								$sql .= "and contact_phone_uuid <> :contact_phone_uuid ";
+								$parameters['contact_phone_uuid'] = $contact_phone_uuid;
+							}
+							$parameters['phone_speed_dial'] = $phone_speed_dial;
+							$parameters['domain_uuid'] = $domain_uuid;
+							$database = new database;
+							if (!empty($database->execute($sql, $parameters, 'column'))) {
+								$phone_speed_dial_exists = true;
+							}
+							unset($sql, $parameters);
+						}
+						if (!is_numeric($phone_speed_dial) || $phone_speed_dial_exists) {
+							message::add($text['message-speed_dial_exists'],'negative');
+							unset($phone_speed_dial);
+						}
 					}
 
 				//add the phone

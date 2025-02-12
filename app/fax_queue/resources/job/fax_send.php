@@ -280,19 +280,23 @@
 			}
 
 		//check to see if the destination number is local
-			$sql = "select count(destination_uuid) ";
-			$sql .= "from v_destinations ";
-			$sql .= "where (";
-			$sql .= " destination_number = :destination_number ";
-			$sql .= " or concat(destination_prefix, destination_number) = :destination_number ";
-			$sql .= " or concat(destination_trunk_prefix, destination_number) = :destination_number ";
-			$sql .= " or concat(destination_area_code, destination_number) = :destination_number ";
-			$sql .= " or concat(destination_prefix, destination_area_code, destination_number) = :destination_number ";
-			$sql .= ")";
-			$parameters['destination_number'] = $fax_number;
-			$destination_count = $database->select($sql, $parameters, 'column');
-			if ($destination_count > 0) {
-				$route_array[] = 'loopback/'.$fax_number.'/public';
+			$local_destination = false;
+			if ($setting->get('fax_queue','prefer_local', false)) {
+				$sql = "select count(destination_uuid) ";
+				$sql .= "from v_destinations ";
+				$sql .= "where (";
+				$sql .= " destination_number = :destination_number ";
+				$sql .= " or concat(destination_prefix, destination_number) = :destination_number ";
+				$sql .= " or concat(destination_trunk_prefix, destination_number) = :destination_number ";
+				$sql .= " or concat(destination_area_code, destination_number) = :destination_number ";
+				$sql .= " or concat(destination_prefix, destination_area_code, destination_number) = :destination_number ";
+				$sql .= ") ";
+				$parameters['destination_number'] = $fax_number;
+				$destination_count = $database->select($sql, $parameters, 'column');
+				if ($destination_count > 0) {
+					$local_destination = true;
+					$route_array[] = 'loopback/'.$fax_number.'/public';
+				}
 			}
 
 		//define the fax file
@@ -306,6 +310,12 @@
 			$common_variables .= "fax_ident='"                   . escape_quote($fax_caller_id_number) . "',";
 			$common_variables .= "fax_header='"                  . escape_quote($fax_caller_id_name) . "',";
 			$common_variables .= "fax_file='"                    . escape_quote($fax_file) . "',";
+
+		//add the fax destination number variables
+			if ($local_destination) {
+				$common_variables .= "sip_to_user=".$fax_number.",";
+				$common_variables .= "sip_req_user=".$fax_number.",";
+			}
 
 		//prepare the fax command
 			if (empty($route_array)) {
@@ -390,7 +400,7 @@
 				$array['fax_queue'][0]['fax_response'] = $fax_response;
 
 				//add temporary permissions
-				$p = new permissions;
+				$p = permissions::new();
 				$p->add('fax_queue_edit', 'temp');
 
 				//save the data
@@ -605,7 +615,7 @@
 			$array['fax_queue'][0]['fax_notify_date'] = 'now()';
 
 		//add temporary permissions
-			$p = new permissions;
+			$p = permissions::new();
 			$p->add('fax_queue_edit', 'temp');
 
 		//save the data

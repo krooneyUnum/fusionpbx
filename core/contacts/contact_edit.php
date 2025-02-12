@@ -367,7 +367,33 @@
 			if (!empty($contact_phones)) {
 				foreach ($contact_phones as $row) {
 					if (!empty($row['phone_number'])) {
-						//add the speed dial
+
+						//if speed dial number already exists, empty before save
+						if (!empty($row["phone_speed_dial"])) {
+							$phone_speed_dial_exists = false;
+							if (is_numeric($row["phone_speed_dial"])) {
+								$sql = "select count(contact_phone_uuid) ";
+								$sql .= "from v_contact_phones ";
+								$sql .= "where phone_speed_dial = :phone_speed_dial ";
+								$sql .= "and domain_uuid = :domain_uuid ";
+								if ($action == "update" && is_uuid($row["contact_phone_uuid"])) {
+									$sql .= "and contact_phone_uuid <> :contact_phone_uuid ";
+									$parameters['contact_phone_uuid'] = $row["contact_phone_uuid"];
+								}
+								$parameters['phone_speed_dial'] = $row["phone_speed_dial"];
+								$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+								$database = new database;
+								if (!empty($database->execute($sql, $parameters, 'column'))) {
+									$phone_speed_dial_exists = true;
+								}
+								unset($sql, $parameters);
+							}
+							if (!is_numeric($row["phone_speed_dial"]) || $phone_speed_dial_exists) {
+								message::add($text['message-speed_dial_exists'],'negative');
+								unset($row["phone_speed_dial"]);
+							}
+						}
+
 						$array['contacts'][0]['contact_phones'][$y]['domain_uuid'] = $_SESSION['domain_uuid'];
 						$array['contacts'][0]['contact_phones'][$y]['contact_uuid'] = $contact_uuid;
 						$array['contacts'][0]['contact_phones'][$y]['contact_phone_uuid'] = $row["contact_phone_uuid"];
@@ -543,7 +569,7 @@
 		//save the data
 			if (!empty($array)) {
 				//add the permission object
-				$p = new permissions;
+				$p = permissions::new();
 				$p->add('contact_add', 'temp');
 				$p->add('contact_phone_add', 'temp');
 				$p->add('contact_address_add', 'temp');
@@ -963,10 +989,10 @@
 			}
 		};
 		if (search) {
-			xhttp.open("GET", "/app/contacts/contact_json.php?search="+search, true);
+			xhttp.open("GET", "/core/contacts/contact_json.php?search="+search, true);
 		}
 		else {
-			xhttp.open("GET", "/app/contacts/contact_json.php", true);
+			xhttp.open("GET", "/core/contacts/contact_json.php", true);
 		}
 		xhttp.send();
 	}
